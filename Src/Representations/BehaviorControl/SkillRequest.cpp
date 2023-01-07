@@ -74,3 +74,11 @@ SkillRequest SkillRequest::Builder::observe(const Vector2f& point)
   request.target.translation = point;
   return request;
 }
+
+SkillRequest SkillRequest::Builder::neuralControl(const Pose2f& target)
+{
+  SkillRequest request;
+  request.skill = SkillRequest::neuralControl;
+  request.target = target;
+  return request;
+}

@@ -263,6 +263,26 @@ SKILL_INTERFACE(GoToBallHeadControl, (float) distanceToTarget, (bool)(false) loo
  */
 SKILL_INTERFACE(ReplayWalk);
 
+
+/**
+ * This skill walks to a target using intelligent path planning.
+ * @param target The target pose in robot-relative coordinates
+ * @param speed The walking speed as ratio of the maximum speed in [0, 1]
+ * @param reduceWalkingSpeed If true, the walking speed will get automatically reduced
+ * @param rough Ignore obstacles if they prevent the robot from reaching its target
+ * @param disableObstacleAvoidance Disables avoiding dynamic obstacles like robots and referees (keeps goal posts, own penalty area and field border avoidance enabled)
+ * @param disableAligning Disables rotation to the walk target
+ * @param disableStanding Disables standing at the target (i.e. if set to true, the robot will walk on the target spot)
+ * @param disableAvoidFieldBorder Do not avoid the field border when walking.
+ * @param targetOfInterest If set, it is used to decide how the body shall be orientated while walking, so the camera can see this target at all times. Target is in relative coordinates. (Only applies for side walk)
+ * @param forceSideWalking If true, force sidewalking
+ */
+SKILL_INTERFACE(NeuralControl, (const Pose2f&) target, (float)(1.f) speed, (bool)(true) reduceWalkingSpeed,
+                (bool)(false) rough, (bool)(false) disableObstacleAvoidance, (bool)(false) disableAligning,
+                (bool)(false) disableStanding, (bool)(false) disableAvoidFieldBorder, (const std::optional<Vector2f>&)(std::optional<Vector2f>()) targetOfInterest,
+                (bool)(false) forceSideWalking);
+
+
 /**
  * This skill walks to a target using intelligent path planning.
  * @param target The target pose in robot-relative coordinates
@@ -280,6 +300,9 @@ SKILL_INTERFACE(WalkToPoint, (const Pose2f&) target, (float)(1.f) speed, (bool)(
                 (bool)(false) rough, (bool)(false) disableObstacleAvoidance, (bool)(false) disableAligning,
                 (bool)(false) disableStanding, (bool)(false) disableAvoidFieldBorder, (const std::optional<Vector2f>&)(std::optional<Vector2f>()) targetOfInterest,
                 (bool)(false) forceSideWalking);
+
+
+
 /**
  * This skill walks to a target using intelligent path planning and shift the target pose to avoid obstacles
  * @param target The target pose in robot-relative coordinates
