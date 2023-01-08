@@ -6,6 +6,7 @@
  * @author Arne Hasselbring (the actual behavior is older)
  */
 
+#include "Tools/RLConfig.h"
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
@@ -23,6 +24,7 @@
 
 #include <stdio.h>
 #include <iostream>
+
 
 #define PI 3.14159265
 
@@ -93,7 +95,7 @@ std::vector<float> getObservation(RobotPose theRobotPose, FieldBall theFieldBall
     goal_relative_angle = goal_theta_radians + (2*PI);
   }
 
-  if (false == true) {
+  if (RLConfig::debug_print == true) {
     std::cout << "position" << std::endl;
     std::cout << x << std::endl;
     std::cout << y << std::endl;
