@@ -11,6 +11,7 @@
 #include "Representations/BehaviorControl/PathPlanner.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/Infrastructure/FrameInfo.h"
+#include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Infrastructure/GameState.h"
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/MotionControl/MotionInfo.h"
@@ -19,6 +20,12 @@
 #include "Representations/Sensing/FootBumperState.h"
 #include <cmath>
 #include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
+
+#include <stdio.h>
+#include <iostream>
+
+#define PI 3.14159265
+
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
 {,
@@ -30,6 +37,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(LibWalk),
   REQUIRES(MotionInfo),
   REQUIRES(PathPlanner),
+  REQUIRES(FieldBall),
   REQUIRES(RobotPose),
   REQUIRES(WalkingEngineOutput),
   MODIFIES(BehaviorStatus),
@@ -45,181 +53,89 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   }),
 });
 
+
+
+std::vector<float> getObservation(RobotPose theRobotPose, FieldBall theFieldBall) {
+
+  const float goal_x = -4500.0;
+  const float goal_y = 0;
+
+  float x = theRobotPose.translation.x();
+  float y = theRobotPose.translation.y();
+  float angle = theRobotPose.rotation;
+  
+  if (angle < 0) {
+    angle += 2 * PI;
+  }
+
+  float target_x = theFieldBall.positionOnField.x();
+  float target_y = theFieldBall.positionOnField.y();
+  
+  float relative_angle;
+  float delta_x = target_x - x;
+  float delta_y = target_y - y;
+  float theta_radians = atan2(delta_y, delta_x);
+
+  if (theta_radians >= 0) {
+    relative_angle = theta_radians;
+  } else {
+    relative_angle = theta_radians + (2*PI);
+  }
+  
+  float goal_delta_x = goal_x - x;
+  float goal_delta_y = goal_y - y;
+  float goal_theta_radians = atan2(goal_delta_y, goal_delta_x);
+  float goal_relative_angle;
+
+  if (goal_theta_radians >= 0) {
+    goal_relative_angle = goal_theta_radians;
+  } else {
+    goal_relative_angle = goal_theta_radians + (2*PI);
+  }
+
+  if (false == true) {
+    std::cout << "position" << std::endl;
+    std::cout << x << std::endl;
+    std::cout << y << std::endl;
+    std::cout << "target position" << std::endl;
+    std::cout << target_x << std::endl;
+    std::cout << target_y << std::endl;
+    std::cout << "ball relative angle" << std::endl;
+    std::cout << relative_angle << std::endl;
+    std::cout << "goal relative angle" << std::endl;
+    std::cout << goal_relative_angle << std::endl;
+    std::cout << "robot angle" << std::endl;
+    std::cout << angle << std::endl;
+  }
+
+  std::vector<float> observation_vector(12);
+  
+  observation_vector[0] = (0 - x) / 9000.0; // dummy defender positions
+  observation_vector[1] = (0 - y) / 6000.0;
+  observation_vector[2] = (0 - x) / 9000.0;
+  observation_vector[3] = (0 - y) / 6000.0;
+  observation_vector[4] = (target_x - x) / 9000.0; //ball position
+  observation_vector[5] = (target_y - y) / 6000.0;
+  observation_vector[6] = (goal_x - target_x) / 9000.0; //goal position
+  observation_vector[7] = (goal_y - target_y) / 6000.0;
+  observation_vector[8] = sin(relative_angle - angle);
+  observation_vector[9] = cos(relative_angle - angle);
+  observation_vector[10] = sin(goal_relative_angle - angle);
+  observation_vector[11] = cos(goal_relative_angle - angle);
+  return observation_vector;
+}
+
+
 class NeuralControlImpl : public NeuralControlImplBase
 {
   option(NeuralControl)
   {
-    ASSERT(theWalkingEngineOutput.maxSpeed.translation.x() > 0.f);
-    const float walkingSpeedRatio = !p.reduceWalkingSpeed ? p.speed : std::min(p.speed, Rangef::ZeroOneRange().limit(targetForwardWalkingSpeed / theWalkingEngineOutput.maxSpeed.translation.x()));
-    const float targetDistance = p.target.translation.norm();
 
-    const bool disableObstacleAvoidance = p.disableObstacleAvoidance || theGameState.isPenaltyShootout();
+    std::vector<float> observation = getObservation(theRobotPose, theFieldBall);
 
-    common_transition
-    {
-      if(!p.rough && (theFrameInfo.getTimeSince(theFootBumperState.status[Legs::left].lastContact) < 400 || theFrameInfo.getTimeSince(theFootBumperState.status[Legs::right].lastContact) < 400))
-        goto footContactWalkBackwards;
-      if(!p.rough && (theFrameInfo.getTimeSince(theArmContactModel.status[Arms::right].timeOfLastContact) < 800))
-        goto armContactWalkLeft;
-      if(!p.rough && (theFrameInfo.getTimeSince(theArmContactModel.status[Arms::left].timeOfLastContact) < 800))
-        goto armContactWalkRight;
-    }
-
-    initial_state(walkClose)
-    {
-      transition
-      {
-        if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-          goto walkFar;
-
-        if(targetDistance < 15.f && std::abs(p.target.rotation) < 3_deg)
-        {
-          if(theMotionInfo.executedPhase == MotionPhase::stand && !p.disableStanding)
-            goto destinationReachedStand;
-          else
-            goto destinationReached;
-        }
-      }
-      action
-      {
-        auto obstacleAvoidance = theLibWalk.calcObstacleAvoidance(p.target, p.rough, disableObstacleAvoidance, /* toBall: */ p.disableAvoidFieldBorder);
-        theWalkToPoseSkill({.target = p.target,
-                            .speed = {walkingSpeedRatio, walkingSpeedRatio, walkingSpeedRatio},
-                            .obstacleAvoidance = obstacleAvoidance,
-                            .keepTargetRotation = p.disableAligning,
-                            .targetOfInterest = p.targetOfInterest,
-                            .forceSideWalking = p.forceSideWalking });
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = walkingSpeedRatio });
-      }
-    }
-
-    state(walkFar)
-    {
-      transition
-      {
-        if(targetDistance < switchToLibWalkDistance || disableObstacleAvoidance)
-          goto walkClose;
-      }
-      action
-      {
-        auto obstacleAvoidance = thePathPlanner.plan(theRobotPose * p.target, Pose2f(walkingSpeedRatio, walkingSpeedRatio, walkingSpeedRatio));
-        theWalkToPoseSkill({.target = p.target,
-                            .speed = {walkingSpeedRatio, walkingSpeedRatio, walkingSpeedRatio},
-                            .obstacleAvoidance = obstacleAvoidance,
-                            .keepTargetRotation = p.disableAligning,
-                            .targetOfInterest = p.targetOfInterest,
-                            .forceSideWalking = p.forceSideWalking });
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = walkingSpeedRatio });
-      }
-    }
-
-    target_state(destinationReached)
-    {
-      transition
-      {
-        if(targetDistance > 100.f || std::abs(p.target.rotation) > 10_deg)
-        {
-          if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-            goto walkFar;
-          else
-            goto walkClose;
-        }
-        if(state_time > 1000 && !p.disableStanding)
-          goto destinationReachedStand;
-      }
-      action
-      {
-        auto obstacleAvoidance = theLibWalk.calcObstacleAvoidance(p.target, p.rough, disableObstacleAvoidance, /* toBall: */ p.disableAvoidFieldBorder);
-        theWalkToPoseSkill({.target = p.target,
-                            .speed = {walkingSpeedRatio, walkingSpeedRatio, walkingSpeedRatio},
-                            .obstacleAvoidance = obstacleAvoidance,
-                            .keepTargetRotation = p.disableAligning,
-                            .targetOfInterest = p.targetOfInterest,
-                            .forceSideWalking = p.forceSideWalking });
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = walkingSpeedRatio });
-      }
-    }
-
-    target_state(destinationReachedStand)
-    {
-      transition
-      {
-        if(targetDistance > 100.f || std::abs(p.target.rotation) > 10_deg || p.disableStanding)
-        {
-          if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-            goto walkFar;
-          else
-            goto walkClose;
-        }
-      }
-      action
-      {
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = 0.f});
-        theStandSkill();
-      }
-    }
-
-    state(footContactWalkBackwards)
-    {
-      transition
-      {
-        if(state_time > (p.rough ? 1000 : 3000))
-        {
-          if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-            goto walkFar;
-          else
-            goto walkClose;
-        }
-      }
-      action
-      {
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = 0.f});
-        theWalkAtRelativeSpeedSkill({.speed = {0.f, -walkingSpeedRatio, 0.f}});
-      }
-    }
-    state(armContactWalkLeft)
-    {
-      transition
-      {
-        if(state_time > (p.rough ? 1000 : 3000))
-        {
-          if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-            goto walkFar;
-          else
-            goto walkClose;
-        }
-      }
-      action
-      {
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = walkingSpeedRatio});
-        theWalkAtRelativeSpeedSkill({.speed = {0.f, 0.f, walkingSpeedRatio}});
-      }
-    }
-    state(armContactWalkRight)
-    {
-      transition
-      {
-        if(state_time > (p.rough ? 1000 : 3000))
-        {
-          if(targetDistance > switchToPathPlannerDistance && !disableObstacleAvoidance)
-            goto walkFar;
-          else
-            goto walkClose;
-        }
-      }
-      action
-      {
-        thePublishMotionSkill({.target = p.target.translation,
-                               .speed = walkingSpeedRatio});
-        theWalkAtRelativeSpeedSkill({.speed = {0.f, 0.f, -walkingSpeedRatio}});
-      }
-    }
+    for (auto i: observation)
+        std::cout << i << ' ';
+    theWalkAtRelativeSpeedSkill({.speed = {1.0, 0.0, 0.0}});
   }
 };
 
