@@ -215,22 +215,18 @@ class NeuralControlImpl : public NeuralControlImplBase
     }
     
 
-    std::cout << "reached 1" << std::endl;
 
     std::vector<NeuralNetwork::TensorXf> shared_output =
         algorithm.applyModel(algorithm.getSharedModel(), observation_input);
     
     NeuralNetwork::TensorXf latent_action = shared_output[0];
     NeuralNetwork::TensorXf latent_value = shared_output[1];
-                std::cout << "reached 2" << std::endl;
 
     std::vector<NeuralNetwork::TensorXf> value_input(algorithm.getValueModel()->getInputs().size());
     value_input[0] = latent_value;
-                std::cout << "reached 3" << std::endl;
 
     std::vector<NeuralNetwork::TensorXf> value_output =
         algorithm.applyModel(algorithm.getValueModel(), value_input);
-                            std::cout << "reached 4" << std::endl;
 
     NeuralNetwork::TensorXf value_estimate = value_output[0];
     algorithm.setCurrentValue(value_estimate(0));
@@ -238,21 +234,17 @@ class NeuralControlImpl : public NeuralControlImplBase
     std::vector<NeuralNetwork::TensorXf> action_input(algorithm.getActionModel()->getInputs().size());
     action_input[0] = latent_action;
     
-                            std::cout << "reached 5" << std::endl;
 
     std::vector<NeuralNetwork::TensorXf> action_output =
         algorithm.applyModel(algorithm.getActionModel(), action_input);
 
-                std::cout << "reached 6" << std::endl;
-                    std::cout << environment.getActionLength()<< std::endl;
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm.computeCurrentAction(action_output, environment.getActionLength()));
-                    std::cout << "reached 7" << std::endl;
 
-
+    /*
     for (auto i: tempCurrentAction)
       std::cout << i << ' ';
-
+    */
     
     theLookForwardSkill();
     if (theFieldBall.timeSinceBallWasSeen > 2000)

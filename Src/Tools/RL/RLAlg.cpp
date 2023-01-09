@@ -101,12 +101,6 @@ std::vector<float> Algorithm::computeCurrentAction(std::vector<NeuralNetwork::Te
   }
   action_mean_vector = newActionMeans;
 
-  std::cout << action_eigen.cols() << std::endl;
-    std::cout << action_eigen.rows() << std::endl;
-  std::cout << covariance_matrix.cols() << std::endl;
-    std::cout << covariance_matrix.rows() << std::endl;
-
-
   action_choice = stats::rmvnorm(action_eigen, covariance_matrix, true);
   current_log_prob = stats::dmvnorm(action_choice, action_eigen, covariance_matrix, true);
 
