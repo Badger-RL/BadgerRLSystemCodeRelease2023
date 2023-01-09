@@ -6,7 +6,20 @@
  * @author Arne Hasselbring (the actual behavior is older)
  */
 
+
+
+#include <CompiledNN/CompiledNN.h>
+#include <CompiledNN/Model.h>
+#include <CompiledNN/SimpleNN.h>
+#include <CompiledNN/Tensor.h>
+
 #include "Tools/RLConfig.h"
+#include "Tools/RL/RLAlg.h"
+#include "Tools/RL/RLData.h"
+#include "Tools/RL/RLEnv.h"
+
+#include "Tools/json.h"
+
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
@@ -27,6 +40,41 @@
 
 
 #define PI 3.14159265
+
+int observation_size = 12;
+
+
+std::mutex cognitionLock;
+
+
+#ifndef BUILD_NAO_FLAG
+std::string shared_policy_path = "../shared_policy.h5";
+std::string action_policy_path = "../action_policy.h5";
+std::string value_policy_path = "../value_policy.h5";
+std::string metadata_path = "../metadata.json";
+#endif
+
+#ifdef BUILD_NAO_FLAG
+std::string shared_policy_path = "./shared_policy.h5";
+std::string action_policy_path = "./action_policy.h5";
+std::string value_policy_path = "./value_policy.h5";
+std::string metadata_path = "./Config/metadata.json";
+#endif
+
+
+std::ifstream metadataFile(metadata_path);
+
+json::value metadata = json::parse(metadataFile);
+
+
+DataTransfer data_transfer(true);
+
+FieldPositions field_positions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+Environment environment(metadata, field_positions, observation_size);
+
+
+Algorithm algorithm(3, shared_policy_path, action_policy_path, value_policy_path);
+
 
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
@@ -133,11 +181,88 @@ class NeuralControlImpl : public NeuralControlImplBase
   option(NeuralControl)
   {
 
+     cognitionLock.lock();
+     if (data_transfer.getCollectNewPolicy()) {
+              data_transfer.newTrajectoriesJSON();
+              data_transfer.waitForNewPolicy();
+
+              algorithm.deleteModels();
+              algorithm.updateModels(data_transfer);
+
+              if (RLConfig::train_mode) {
+                algorithm.deletePolicyFiles(data_transfer);
+              }
+
+              data_transfer.setCollectNewPolicy(false);
+      }
+
+    /*
     std::vector<float> observation = getObservation(theRobotPose, theFieldBall);
 
     for (auto i: observation)
         std::cout << i << ' ';
     theWalkAtRelativeSpeedSkill({.speed = {1.0, 0.0, 0.0}});
+````*/
+        
+            const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm.getSharedModel()->getInputs();
+            std::vector<NeuralNetwork::TensorXf> observation_input(algorithm.getSharedModel()->getInputs().size());
+            for (std::size_t i = 0; i < observation_input.size(); ++i) {
+              observation_input[i].reshape(
+                                           shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
+            }
+            
+            std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
+            if (RLConfig::normalization) {
+              current_observation = environment.normalizeObservation();
+            }
+
+            for (int i = 0; i < observation_size; i++) {
+              observation_input[0][i] = current_observation[i];
+            }
+            
+
+            std::cout << "reached 1" << std::endl;
+
+            std::vector<NeuralNetwork::TensorXf> shared_output =
+                algorithm.applyModel(algorithm.getSharedModel(), observation_input);
+            
+            NeuralNetwork::TensorXf latent_action = shared_output[0];
+            NeuralNetwork::TensorXf latent_value = shared_output[1];
+                        std::cout << "reached 2" << std::endl;
+
+            std::vector<NeuralNetwork::TensorXf> value_input(algorithm.getValueModel()->getInputs().size());
+            value_input[0] = latent_value;
+                        std::cout << "reached 3" << std::endl;
+
+            std::vector<NeuralNetwork::TensorXf> value_output =
+                algorithm.applyModel(algorithm.getValueModel(), value_input);
+                                    std::cout << "reached 4" << std::endl;
+
+            NeuralNetwork::TensorXf value_estimate = value_output[0];
+            algorithm.setCurrentValue(value_estimate(0));
+            
+            std::vector<NeuralNetwork::TensorXf> action_input(algorithm.getActionModel()->getInputs().size());
+            action_input[0] = latent_action;
+            
+                                    std::cout << "reached 5" << std::endl;
+
+            std::vector<NeuralNetwork::TensorXf> action_output =
+                algorithm.applyModel(algorithm.getActionModel(), action_input);
+
+                        std::cout << "reached 6" << std::endl;
+                           std::cout << environment.getActionLength()<< std::endl;
+
+            std::vector<float> tempCurrentAction = std::vector<float>(algorithm.computeCurrentAction(action_output, environment.getActionLength()));
+                           std::cout << "reached 7" << std::endl;
+
+   
+             for (auto i: tempCurrentAction)
+                std::cout << i << ' ';
+
+                theWalkAtRelativeSpeedSkill({.speed = {algorithm.getActionMeans()[0], algorithm.getActionMeans()[1], algorithm.getActionMeans()[2]}});
+              cognitionLock.unlock();
+
+
   }
 };
 
