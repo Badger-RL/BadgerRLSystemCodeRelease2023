@@ -91,6 +91,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(RobotPose),
   REQUIRES(WalkingEngineOutput),
   MODIFIES(BehaviorStatus),
+  CALLS(LookForward),
   CALLS(Stand),
   CALLS(PublishMotion),
   CALLS(WalkAtRelativeSpeed),
@@ -194,74 +195,76 @@ class NeuralControlImpl : public NeuralControlImplBase
               }
 
               data_transfer.setCollectNewPolicy(false);
-      }
+    }
 
-    /*
-    std::vector<float> observation = getObservation(theRobotPose, theFieldBall);
-
-    for (auto i: observation)
-        std::cout << i << ' ';
-    theWalkAtRelativeSpeedSkill({.speed = {1.0, 0.0, 0.0}});
-````*/
         
-            const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm.getSharedModel()->getInputs();
-            std::vector<NeuralNetwork::TensorXf> observation_input(algorithm.getSharedModel()->getInputs().size());
-            for (std::size_t i = 0; i < observation_input.size(); ++i) {
-              observation_input[i].reshape(
-                                           shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
-            }
-            
-            std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
-            if (RLConfig::normalization) {
-              current_observation = environment.normalizeObservation();
-            }
+    const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm.getSharedModel()->getInputs();
+    std::vector<NeuralNetwork::TensorXf> observation_input(algorithm.getSharedModel()->getInputs().size());
+    for (std::size_t i = 0; i < observation_input.size(); ++i) {
+      observation_input[i].reshape(
+                                    shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
+    }
+    
+    std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
+    if (RLConfig::normalization) {
+      current_observation = environment.normalizeObservation();
+    }
 
-            for (int i = 0; i < observation_size; i++) {
-              observation_input[0][i] = current_observation[i];
-            }
-            
+    for (int i = 0; i < observation_size; i++) {
+      observation_input[0][i] = current_observation[i];
+    }
+    
 
-            std::cout << "reached 1" << std::endl;
+    std::cout << "reached 1" << std::endl;
 
-            std::vector<NeuralNetwork::TensorXf> shared_output =
-                algorithm.applyModel(algorithm.getSharedModel(), observation_input);
-            
-            NeuralNetwork::TensorXf latent_action = shared_output[0];
-            NeuralNetwork::TensorXf latent_value = shared_output[1];
-                        std::cout << "reached 2" << std::endl;
+    std::vector<NeuralNetwork::TensorXf> shared_output =
+        algorithm.applyModel(algorithm.getSharedModel(), observation_input);
+    
+    NeuralNetwork::TensorXf latent_action = shared_output[0];
+    NeuralNetwork::TensorXf latent_value = shared_output[1];
+                std::cout << "reached 2" << std::endl;
 
-            std::vector<NeuralNetwork::TensorXf> value_input(algorithm.getValueModel()->getInputs().size());
-            value_input[0] = latent_value;
-                        std::cout << "reached 3" << std::endl;
+    std::vector<NeuralNetwork::TensorXf> value_input(algorithm.getValueModel()->getInputs().size());
+    value_input[0] = latent_value;
+                std::cout << "reached 3" << std::endl;
 
-            std::vector<NeuralNetwork::TensorXf> value_output =
-                algorithm.applyModel(algorithm.getValueModel(), value_input);
-                                    std::cout << "reached 4" << std::endl;
+    std::vector<NeuralNetwork::TensorXf> value_output =
+        algorithm.applyModel(algorithm.getValueModel(), value_input);
+                            std::cout << "reached 4" << std::endl;
 
-            NeuralNetwork::TensorXf value_estimate = value_output[0];
-            algorithm.setCurrentValue(value_estimate(0));
-            
-            std::vector<NeuralNetwork::TensorXf> action_input(algorithm.getActionModel()->getInputs().size());
-            action_input[0] = latent_action;
-            
-                                    std::cout << "reached 5" << std::endl;
+    NeuralNetwork::TensorXf value_estimate = value_output[0];
+    algorithm.setCurrentValue(value_estimate(0));
+    
+    std::vector<NeuralNetwork::TensorXf> action_input(algorithm.getActionModel()->getInputs().size());
+    action_input[0] = latent_action;
+    
+                            std::cout << "reached 5" << std::endl;
 
-            std::vector<NeuralNetwork::TensorXf> action_output =
-                algorithm.applyModel(algorithm.getActionModel(), action_input);
+    std::vector<NeuralNetwork::TensorXf> action_output =
+        algorithm.applyModel(algorithm.getActionModel(), action_input);
 
-                        std::cout << "reached 6" << std::endl;
-                           std::cout << environment.getActionLength()<< std::endl;
+                std::cout << "reached 6" << std::endl;
+                    std::cout << environment.getActionLength()<< std::endl;
 
-            std::vector<float> tempCurrentAction = std::vector<float>(algorithm.computeCurrentAction(action_output, environment.getActionLength()));
-                           std::cout << "reached 7" << std::endl;
+    std::vector<float> tempCurrentAction = std::vector<float>(algorithm.computeCurrentAction(action_output, environment.getActionLength()));
+                    std::cout << "reached 7" << std::endl;
 
-   
-             for (auto i: tempCurrentAction)
-                std::cout << i << ' ';
 
-                theWalkAtRelativeSpeedSkill({.speed = {algorithm.getActionMeans()[0], algorithm.getActionMeans()[1], algorithm.getActionMeans()[2]}});
-              cognitionLock.unlock();
+    for (auto i: tempCurrentAction)
+      std::cout << i << ' ';
 
+    
+    theLookForwardSkill();
+    if (theFieldBall.timeSinceBallWasSeen > 2000)
+    {
+      theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                                        0.0f,
+                                        0.0f}});
+    }
+    else{
+      theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm.getActionMeans()[0]) * 0.7f, (float)(algorithm.getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm.getActionMeans()[1]), (float)(algorithm.getActionMeans()[2])}});
+    }
+    cognitionLock.unlock();
 
   }
 };
