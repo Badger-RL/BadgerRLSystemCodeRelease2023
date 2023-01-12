@@ -1,0 +1,20 @@
+{
+  "mode": "push_ball_to_goal",
+  "mode1": "move_forward",
+  "mode2": "ball_targeting",
+  "mode3": "push_ball_to_goal",
+  "mode4": "dummy_defenders",
+  "mode5": "goalie",
+  "visualization_mode": true,
+  "train_mode": false,
+  "deterministic": true,
+  "referee_enabled": false,
+  "start_from_pretrained": false,
+  "batch_size": 10000,
+  "episode_length": 10000,
+  "action_steps": 1,
+  "epoch_count": 1,
+  "seed": 0,
+  "normalization": true,
+  "debug_print": false
+}

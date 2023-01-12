@@ -25,6 +25,9 @@
 #include <algorithm>
 #include <functional>
 #include <random>
+#include <string>
+#include <stdio.h>
+#include <iostream>
 
 Behavior::Behavior(const BallDropInModel& theBallDropInModel, const ExtendedGameState& theExtendedGameState, const FieldBall& theFieldBall, const FieldDimensions& theFieldDimensions,
                    const FrameInfo& theFrameInfo, const GameState& theGameState, const TeammatesBallModel& theTeammatesBallModel) :
@@ -755,8 +758,8 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
 
   if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > 8000)
     return ballSearch->execute(agent, otherAgents);
-
-  if(agent.proposedSetPlay != SetPlay::none && agent.setPlayStep >= 0 /* TODO: if < 0, the agents should still go to their positions... */)
+  /*
+  if(agent.proposedSetPlay != SetPlay::none && agent.setPlayStep >= 0 ) // TODO: if < 0, the agents should still go to their positions... 
   {
     const std::vector<SetPlay::Action>* actions = nullptr;
     for(const SetPlay::Position& position : setPlays[agent.proposedSetPlay]->positions) // TODO: here proposed, too?
@@ -770,7 +773,21 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
       return setPlayActions[action.type] ? setPlayActions[action.type]->execute(action, agent, otherAgents) : SkillRequest::Builder::empty();
     }
   }
-  return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
+  */
+
+
+  //std::cout <<  "printing role" << std::endl;
+  //std::cout << agent.role.typename << std::endl;
+  //std::cout <<  "end print role" << std::endl;
+
+  const Vector2f target(0.0,0.0);
+
+
+  return SkillRequest::Builder::neuralControl(target);
+
+
+  //SkillRequest::
+  //return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
 }
 
 template<typename SetPlayType>

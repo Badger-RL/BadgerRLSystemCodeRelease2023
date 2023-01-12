@@ -143,6 +143,9 @@ void SkillBehaviorControl::executeRequest()
       case SkillRequest::observe:
         theObservePointSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
         break;
+      case SkillRequest::neuralControl:
+        theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+        break;
       default:
         FAIL("Unknown skill request.");
     }

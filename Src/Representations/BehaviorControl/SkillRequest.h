@@ -25,6 +25,7 @@ STREAMABLE(SkillRequest,
     block,
     mark,
     observe,
+    neuralControl,
   });
 
   struct Builder
@@ -39,6 +40,7 @@ STREAMABLE(SkillRequest,
     static SkillRequest block(const Vector2f& player);
     static SkillRequest mark(const Vector2f& player);
     static SkillRequest observe(const Vector2f& point);
+    static SkillRequest neuralControl(const Pose2f& target);
   },
 
   (Type)(none) skill, /**< The skill that shall run. */
