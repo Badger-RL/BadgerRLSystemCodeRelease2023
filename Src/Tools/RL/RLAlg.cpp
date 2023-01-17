@@ -1,12 +1,57 @@
 #include "RLAlg.h"
 
-Algorithm::Algorithm(const int action_length, const std::string shared_policy_path,
-                      const std::string action_policy_path, const std::string value_policy_path) :
+Algorithm::Algorithm(const std::string policyPath, const std::string policyName)/* :
 std_dev(action_length, 1),
 covariance_matrix (action_length, action_length),
 shared_policy_path(shared_policy_path),
 action_policy_path(action_policy_path),
-value_policy_path(value_policy_path) {}
+value_policy_path(value_policy_path)*/ {
+
+
+metadata_path = policyPath + policyName + "/metadata.json";
+
+std::ifstream metadataFile(metadata_path);
+
+json::value metadata = json::parse(metadataFile);
+
+int actionLength = std::stoi(to_string(metadata["action_length"]));
+
+std_dev = Eigen::MatrixXd(actionLength,1);
+covariance_matrix = Eigen::MatrixXd(actionLength,actionLength);
+
+shared_policy_path = policyPath + policyName + "/shared_policy.h5";
+action_policy_path = policyPath + policyName + "/action_policy.h5";
+value_policy_path = policyPath + policyName + "/value_policy.h5";
+
+
+
+normalization_clip = std::stof(to_string(metadata["clip"]));
+normalization_epsilon = std::stof(to_string(metadata["epsilon"]));
+normalization_mean = getFloatVectorFromJSONArray(metadata["mean"]);
+normalization_var = getFloatVectorFromJSONArray(metadata["var"]); 
+
+
+}
+
+std::vector<float> Algorithm::normalizeObservation(std::vector<float> observation_vector) {
+  std::vector<float> normalized_vector = std::vector<float>(observation_vector.size());
+  for (int i = 0; i < observation_vector.size(); i++) {
+    float normalized = (observation_vector[i] - normalization_mean[i]) / sqrt(normalization_var[i] + normalization_epsilon);
+    
+    if (normalized > normalization_clip) {
+      normalized = normalization_clip;
+    }
+
+    if (normalized < -normalization_clip) {
+      normalized = -normalization_clip;
+    }
+
+    normalized_vector[i] =  normalized;
+  }
+  
+  return normalized_vector;
+}
+
 
 // derived from https://stackoverflow.com/a/36527160
 float Algorithm::uniformRandom() {
@@ -23,7 +68,7 @@ void Algorithm::deleteModels() {
 }
 
 #ifndef BUILD_NAO_FLAG
-void Algorithm::updateModels(DataTransfer data_transfer) {
+void Algorithm::updateModels() {
   shared_model = new NeuralNetwork::Model(shared_policy_path);
   action_model = new NeuralNetwork::Model(action_policy_path);
   value_model = new NeuralNetwork::Model(value_policy_path);
@@ -31,7 +76,7 @@ void Algorithm::updateModels(DataTransfer data_transfer) {
 #endif
 
 #ifdef BUILD_NAO_FLAG
-void Algorithm::updateModels(DataTransfer data_transfer) {
+void Algorithm::updateModels() {
 
 
   shared_model = new NeuralNetwork::Model( "/home/nao/Config/" +  shared_policy_path);
@@ -41,12 +86,61 @@ void Algorithm::updateModels(DataTransfer data_transfer) {
 
 #endif
 
+std::vector<float> Algorithm::getFloatVectorFromJSONArray(const json::value &json_value) {
+  std::vector<float> result;
+  const json::array &json_array = as_array(json_value);
+  for(auto entry = json_array.begin(); entry != json_array.end(); ++entry) {
+     const json::value &entry_string = *entry;
+     result.push_back(std::stof(to_string(entry_string)));
+  }
+  return result;
+}
 
-
-void Algorithm::deletePolicyFiles(DataTransfer data_transfer) {
+void Algorithm::deletePolicyFiles() {
   std::remove((shared_policy_path).c_str());
   std::remove((action_policy_path).c_str());
   std::remove((value_policy_path).c_str());
+}
+
+void Algorithm::waitForNewPolicy() {
+  while (true) {
+    
+    if (!doesFileExist(shared_policy_path)) {
+#ifdef DEBUG_MODE
+      std::cout << "waiting for shared policy \n";
+#endif
+      continue;
+    }
+    
+    if (!doesFileExist(action_policy_path)) {
+#ifdef DEBUG_MODE
+      std::cout << "waiting for action policy \n";
+#endif
+      continue;
+    }
+    
+    if (!doesFileExist(value_policy_path)) {
+#ifdef DEBUG_MODE
+      std::cout << "waiting for value policy \n";
+#endif
+      continue;
+    }
+    
+    if (!doesFileExist(metadata_path)) {
+#ifdef DEBUG_MODE
+      std::cout << "waiting for meta data \n";
+#endif
+      continue;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    break;
+  }
+}
+
+bool Algorithm::doesFileExist(const std::string &name) {
+  std::ifstream f(name.c_str());
+  return f.good();
 }
 
 void Algorithm::processStdDevAndCov(json::value metadata) {

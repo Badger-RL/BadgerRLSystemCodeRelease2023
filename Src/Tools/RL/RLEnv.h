@@ -45,16 +45,11 @@ private:
   FieldPositions field_positions;
   
   std::vector<float> observation_vector;
-  std::vector<float> normalized_vector;
   std::vector<float> current_action;
   
-  float normalization_clip;
-  float normalization_epsilon;
-  std::vector<float> normalization_mean;
-  std::vector<float> normalization_var;
   
 public:
-  Environment (const json::value metadata, const FieldPositions field_positions, const int observation_size);
+  Environment (const FieldPositions field_positions, const int observation_size, const int action_size);
   
   std::vector<float> getFloatVectorFromJSONArray(const json::value &json_value);
   bool shouldReset(GroundTruthRobotPose pose);
@@ -62,7 +57,6 @@ public:
   std::vector<float> getObservation(GroundTruthRobotPose pose);
   std::vector<float> getObservation(RobotPose pose, FieldBall ball);
 
-  std::vector<float> normalizeObservation();
   
   void setFieldPositions(const float virtual_ball_X_position, const float virtual_ball_Y_position,
                          const float dummy_defender_1_X_position, const float dummy_defender_1_Y_position,
@@ -76,7 +70,6 @@ public:
   
   std::vector<float> getCurrentAction() { return current_action; }
   std::vector<float> getCurrentObservation() { return observation_vector; }
-  std::vector<float> getNormalizedObservation() { return normalized_vector; }
 };    // class Environment
 
 #endif /* RLEnv_h */

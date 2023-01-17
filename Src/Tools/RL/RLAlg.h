@@ -22,6 +22,9 @@ class Algorithm {
 private:
   Eigen::MatrixXd std_dev;
   Eigen::MatrixXd covariance_matrix;
+
+  bool collect_new_policy;
+
   
   float current_value;
   float prev_value;
@@ -35,22 +38,37 @@ private:
   std::string shared_policy_path;
   std::string action_policy_path;
   std::string value_policy_path;
+  std::string metadata_path;
+  
+  float normalization_clip;
+  float normalization_epsilon;
+  std::vector<float> normalization_mean;
+  std::vector<float> normalization_var;
 
   Eigen::MatrixXd action_choice;
   NeuralNetwork::TensorXf action_means;
   std::vector<float> action_mean_vector;
   
 public:
-  Algorithm (const int action_length, const std::string shared_policy_path,
-             const std::string action_policy_path, const std::string value_policy_path);
+  Algorithm (const std::string policyPath, const std::string policyName);
   
   float uniformRandom();
   
+  std::vector<float> getFloatVectorFromJSONArray(const json::value &json_value);
+  void waitForNewPolicy();
+
   void deleteModels();
-  void updateModels(DataTransfer data_transfer);
-  void deletePolicyFiles(DataTransfer data_transfer);
+  void updateModels();
+  void deletePolicyFiles();
   
   void processStdDevAndCov(json::value metadata);
+
+  bool getCollectNewPolicy() { return collect_new_policy; }
+  void setCollectNewPolicy(bool value) { collect_new_policy = value; }
+
+
+  std::vector<float> normalizeObservation(std::vector<float>);
+  bool doesFileExist(const std::string &name);
   
   std::vector<NeuralNetwork::TensorXf>
       applyModel(NeuralNetwork::Model *model, const std::vector<NeuralNetwork::TensorXf> input);

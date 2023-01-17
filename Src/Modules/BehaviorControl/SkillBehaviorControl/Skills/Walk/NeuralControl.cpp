@@ -24,6 +24,7 @@
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
 #include "Representations/BehaviorControl/Skills.h"
+#include "Representations/BehaviorControl/StrategyStatus.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Infrastructure/GameState.h"
@@ -33,6 +34,7 @@
 #include "Representations/Sensing/ArmContactModel.h"
 #include "Representations/Sensing/FootBumperState.h"
 #include <cmath>
+#include "Tools/BehaviorControl/Strategy/PositionRole.h"
 #include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
 
 #include <stdio.h>
@@ -42,39 +44,32 @@
 #define PI 3.14159265
 
 int observation_size = 12;
+int action_size = 3;
 
 
 std::mutex cognitionLock;
 
 
 #ifndef BUILD_NAO_FLAG
-std::string shared_policy_path = "../shared_policy.h5";
-std::string action_policy_path = "../action_policy.h5";
-std::string value_policy_path = "../value_policy.h5";
-std::string metadata_path = "../metadata.json";
+std::string policy_path = "../Policies/";
 #endif
-
 #ifdef BUILD_NAO_FLAG
-std::string shared_policy_path = "./shared_policy.h5";
-std::string action_policy_path = "./action_policy.h5";
-std::string value_policy_path = "./value_policy.h5";
-std::string metadata_path = "./Config/metadata.json";
+std::string policy_path = "./Policies/";
 #endif
 
 
-std::ifstream metadataFile(metadata_path);
 
-json::value metadata = json::parse(metadataFile);
 
 
 DataTransfer data_transfer(true);
 
 FieldPositions field_positions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-Environment environment(metadata, field_positions, observation_size);
+Environment environment(field_positions, observation_size, action_size);
 
 
-Algorithm algorithm(3, shared_policy_path, action_policy_path, value_policy_path);
-
+Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
+Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm * algorithm;
 
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
@@ -89,6 +84,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(PathPlanner),
   REQUIRES(FieldBall),
   REQUIRES(RobotPose),
+  REQUIRES(StrategyStatus),
   REQUIRES(WalkingEngineOutput),
   MODIFIES(BehaviorStatus),
   CALLS(LookForward),
@@ -106,76 +102,6 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 
 
-std::vector<float> getObservation(RobotPose theRobotPose, FieldBall theFieldBall) {
-
-  const float goal_x = -4500.0;
-  const float goal_y = 0;
-
-  float x = theRobotPose.translation.x();
-  float y = theRobotPose.translation.y();
-  float angle = theRobotPose.rotation;
-  
-  if (angle < 0) {
-    angle += 2 * PI;
-  }
-
-  float target_x = theFieldBall.positionOnField.x();
-  float target_y = theFieldBall.positionOnField.y();
-  
-  float relative_angle;
-  float delta_x = target_x - x;
-  float delta_y = target_y - y;
-  float theta_radians = atan2(delta_y, delta_x);
-
-  if (theta_radians >= 0) {
-    relative_angle = theta_radians;
-  } else {
-    relative_angle = theta_radians + (2*PI);
-  }
-  
-  float goal_delta_x = goal_x - x;
-  float goal_delta_y = goal_y - y;
-  float goal_theta_radians = atan2(goal_delta_y, goal_delta_x);
-  float goal_relative_angle;
-
-  if (goal_theta_radians >= 0) {
-    goal_relative_angle = goal_theta_radians;
-  } else {
-    goal_relative_angle = goal_theta_radians + (2*PI);
-  }
-
-  if (RLConfig::debug_print == true) {
-    std::cout << "position" << std::endl;
-    std::cout << x << std::endl;
-    std::cout << y << std::endl;
-    std::cout << "target position" << std::endl;
-    std::cout << target_x << std::endl;
-    std::cout << target_y << std::endl;
-    std::cout << "ball relative angle" << std::endl;
-    std::cout << relative_angle << std::endl;
-    std::cout << "goal relative angle" << std::endl;
-    std::cout << goal_relative_angle << std::endl;
-    std::cout << "robot angle" << std::endl;
-    std::cout << angle << std::endl;
-  }
-
-  std::vector<float> observation_vector(12);
-  
-  observation_vector[0] = (0 - x) / 9000.0; // dummy defender positions
-  observation_vector[1] = (0 - y) / 6000.0;
-  observation_vector[2] = (0 - x) / 9000.0;
-  observation_vector[3] = (0 - y) / 6000.0;
-  observation_vector[4] = (target_x - x) / 9000.0; //ball position
-  observation_vector[5] = (target_y - y) / 6000.0;
-  observation_vector[6] = (goal_x - target_x) / 9000.0; //goal position
-  observation_vector[7] = (goal_y - target_y) / 6000.0;
-  observation_vector[8] = sin(relative_angle - angle);
-  observation_vector[9] = cos(relative_angle - angle);
-  observation_vector[10] = sin(goal_relative_angle - angle);
-  observation_vector[11] = cos(goal_relative_angle - angle);
-  return observation_vector;
-}
-
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
@@ -183,31 +109,41 @@ class NeuralControlImpl : public NeuralControlImplBase
   {
 
      cognitionLock.lock();
-     if (data_transfer.getCollectNewPolicy()) {
-              data_transfer.newTrajectoriesJSON();
-              data_transfer.waitForNewPolicy();
 
-              algorithm.deleteModels();
-              algorithm.updateModels(data_transfer);
+    
+     if (theStrategyStatus.role == PositionRole::toRole(PositionRole::goalkeeper))
+     {
+     algorithm = & goalKeeperAlgorithm;
+     }
+     else{
+     algorithm = & goalKeeperAlgorithm;
+    }
+
+     if (algorithm->getCollectNewPolicy()) {
+              data_transfer.newTrajectoriesJSON();
+              algorithm->waitForNewPolicy();
+
+              algorithm->deleteModels();
+              algorithm->updateModels();
 
               if (RLConfig::train_mode) {
-                algorithm.deletePolicyFiles(data_transfer);
+                algorithm->deletePolicyFiles();
               }
 
-              data_transfer.setCollectNewPolicy(false);
+              algorithm->setCollectNewPolicy(false);
     }
 
         
-    const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm.getSharedModel()->getInputs();
-    std::vector<NeuralNetwork::TensorXf> observation_input(algorithm.getSharedModel()->getInputs().size());
+    const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
+    std::vector<NeuralNetwork::TensorXf> observation_input(algorithm->getSharedModel()->getInputs().size());
     for (std::size_t i = 0; i < observation_input.size(); ++i) {
       observation_input[i].reshape(
-                                    shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
+                                    algorithm->getSharedModel()->getInputs()[i].layer->nodes[algorithm->getSharedModel()->getInputs()[i].nodeIndex].outputDimensions[algorithm->getSharedModel()->getInputs()[i].tensorIndex]);
     }
     
     std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
     if (RLConfig::normalization) {
-      current_observation = environment.normalizeObservation();
+      current_observation = algorithm->normalizeObservation(current_observation);
     }
 
     for (int i = 0; i < observation_size; i++) {
@@ -217,29 +153,29 @@ class NeuralControlImpl : public NeuralControlImplBase
 
 
     std::vector<NeuralNetwork::TensorXf> shared_output =
-        algorithm.applyModel(algorithm.getSharedModel(), observation_input);
+        algorithm->applyModel(algorithm->getSharedModel(), observation_input);
     
     NeuralNetwork::TensorXf latent_action = shared_output[0];
     NeuralNetwork::TensorXf latent_value = shared_output[1];
 
-    std::vector<NeuralNetwork::TensorXf> value_input(algorithm.getValueModel()->getInputs().size());
+    std::vector<NeuralNetwork::TensorXf> value_input(algorithm->getValueModel()->getInputs().size());
     value_input[0] = latent_value;
 
     std::vector<NeuralNetwork::TensorXf> value_output =
-        algorithm.applyModel(algorithm.getValueModel(), value_input);
+        algorithm->applyModel(algorithm->getValueModel(), value_input);
 
     NeuralNetwork::TensorXf value_estimate = value_output[0];
-    algorithm.setCurrentValue(value_estimate(0));
+    algorithm->setCurrentValue(value_estimate(0));
     
-    std::vector<NeuralNetwork::TensorXf> action_input(algorithm.getActionModel()->getInputs().size());
+    std::vector<NeuralNetwork::TensorXf> action_input(algorithm->getActionModel()->getInputs().size());
     action_input[0] = latent_action;
     
 
     std::vector<NeuralNetwork::TensorXf> action_output =
-        algorithm.applyModel(algorithm.getActionModel(), action_input);
+        algorithm->applyModel(algorithm->getActionModel(), action_input);
 
 
-    std::vector<float> tempCurrentAction = std::vector<float>(algorithm.computeCurrentAction(action_output, environment.getActionLength()));
+    std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, environment.getActionLength()));
 
     /*
     for (auto i: tempCurrentAction)
@@ -247,14 +183,14 @@ class NeuralControlImpl : public NeuralControlImplBase
     */
     
     theLookForwardSkill();
-    if (theFieldBall.timeSinceBallWasSeen > 2000)
+    if (theFieldBall.timeSinceBallWasSeen > 15000)
     {
       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
                                         0.0f}});
     }
     else{
-      theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm.getActionMeans()[0]) * 0.7f, (float)(algorithm.getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm.getActionMeans()[1]), (float)(algorithm.getActionMeans()[2])}});
+      theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
     }
     cognitionLock.unlock();
 

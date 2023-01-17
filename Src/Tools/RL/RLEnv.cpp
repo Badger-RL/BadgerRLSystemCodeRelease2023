@@ -1,16 +1,10 @@
 #include "RLEnv.h"
 
-Environment::Environment (const json::value metadata, const FieldPositions field_positions, const int observation_size) :
-  observation_length ((unsigned int)(std::stoi(to_string(metadata["observation_length"])))),
-  action_length ((unsigned int)(std::stoi(to_string(metadata["action_length"])))),
+Environment::Environment (const FieldPositions field_positions, const int observation_size, const int action_size) :
+  observation_length ((unsigned int)(observation_size)),
+  action_length ((unsigned int)(action_size)),
   field_positions (field_positions),
-  observation_vector (observation_size),
-  normalized_vector (observation_size),
-  normalization_clip (std::stof(to_string(metadata["clip"]))),
-  normalization_epsilon (std::stof(to_string(metadata["epsilon"]))),
-  normalization_mean (getFloatVectorFromJSONArray(metadata["mean"])),
-  normalization_var (getFloatVectorFromJSONArray(metadata["var"])) {}
-
+  observation_vector (observation_size) {}
 bool Environment::shouldReset(GroundTruthRobotPose pose) {
   if (RLConfig::mode == "push_ball_to_goal" || RLConfig::mode == "dummy_defenders" ||
       RLConfig::mode == "goalie") {
@@ -34,7 +28,7 @@ bool Environment::shouldReset(GroundTruthRobotPose pose) {
 
 std::vector<float> Environment::getObservation(RobotPose theRobotPose, FieldBall theFieldBall) {
 
-  const float goal_x = -4500.0;
+  const float goal_x = 4500.0;
   const float goal_y = 0;
 
   float x = theRobotPose.translation.x();
@@ -169,23 +163,7 @@ std::vector<float> Environment::getObservation(GroundTruthRobotPose pose) {
   return observation_vector;
 }
 
-std::vector<float> Environment::normalizeObservation() {
-  for (int i = 0; i < observation_vector.size(); i++) {
-    float normalized = (observation_vector[i] - normalization_mean[i]) / sqrt(normalization_var[i] + normalization_epsilon);
-    
-    if (normalized > normalization_clip) {
-      normalized = normalization_clip;
-    }
 
-    if (normalized < -normalization_clip) {
-      normalized = -normalization_clip;
-    }
-
-    normalized_vector[i] =  normalized;
-  }
-  
-  return normalized_vector;
-}
 
 std::vector<float> Environment::getFloatVectorFromJSONArray(const json::value &json_value) {
   std::vector<float> result;
