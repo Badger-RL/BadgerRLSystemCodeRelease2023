@@ -54,7 +54,7 @@ std::mutex cognitionLock;
 std::string policy_path = "../Policies/";
 #endif
 #ifdef BUILD_NAO_FLAG
-std::string policy_path = "./Policies/";
+std::string policy_path = "/home/nao/Config/Policies/";
 #endif
 
 

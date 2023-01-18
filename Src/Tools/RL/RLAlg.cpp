@@ -1,4 +1,5 @@
 #include "RLAlg.h"
+#include <iostream>
 
 Algorithm::Algorithm(const std::string policyPath, const std::string policyName)/* :
 std_dev(action_length, 1),
@@ -8,7 +9,11 @@ action_policy_path(action_policy_path),
 value_policy_path(value_policy_path)*/ {
 
 
+
+
 metadata_path = policyPath + policyName + "/metadata.json";
+
+std::cout << "Metadata path: "+ metadata_path << std::endl;
 
 std::ifstream metadataFile(metadata_path);
 
@@ -67,24 +72,13 @@ void Algorithm::deleteModels() {
   delete value_model;
 }
 
-#ifndef BUILD_NAO_FLAG
 void Algorithm::updateModels() {
   shared_model = new NeuralNetwork::Model(shared_policy_path);
   action_model = new NeuralNetwork::Model(action_policy_path);
   value_model = new NeuralNetwork::Model(value_policy_path);
 }
-#endif
-
-#ifdef BUILD_NAO_FLAG
-void Algorithm::updateModels() {
 
 
-  shared_model = new NeuralNetwork::Model( "/home/nao/Config/" +  shared_policy_path);
-  action_model = new NeuralNetwork::Model("/home/nao/Config/"  + action_policy_path);
-  value_model = new NeuralNetwork::Model( "/home/nao/Config/"  + value_policy_path);
-}
-
-#endif
 
 std::vector<float> Algorithm::getFloatVectorFromJSONArray(const json::value &json_value) {
   std::vector<float> result;
