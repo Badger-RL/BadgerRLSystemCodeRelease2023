@@ -116,8 +116,8 @@ class NeuralControlImpl : public NeuralControlImplBase
      algorithm = & goalKeeperAlgorithm;
      }
      else{
-     algorithm = & goalKeeperAlgorithm;
-    }
+      algorithm = & attackerAlgorithm;
+     }
 
      if (algorithm->getCollectNewPolicy()) {
               data_transfer.newTrajectoriesJSON();
@@ -134,11 +134,12 @@ class NeuralControlImpl : public NeuralControlImplBase
     }
 
         
+         
     const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
     std::vector<NeuralNetwork::TensorXf> observation_input(algorithm->getSharedModel()->getInputs().size());
     for (std::size_t i = 0; i < observation_input.size(); ++i) {
       observation_input[i].reshape(
-                                    algorithm->getSharedModel()->getInputs()[i].layer->nodes[algorithm->getSharedModel()->getInputs()[i].nodeIndex].outputDimensions[algorithm->getSharedModel()->getInputs()[i].tensorIndex]);
+                                    shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
     }
     
     std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
@@ -176,11 +177,6 @@ class NeuralControlImpl : public NeuralControlImplBase
 
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, environment.getActionLength()));
-
-    /*
-    for (auto i: tempCurrentAction)
-      std::cout << i << ' ';
-    */
     
     theLookForwardSkill();
     if (theFieldBall.timeSinceBallWasSeen > 15000)

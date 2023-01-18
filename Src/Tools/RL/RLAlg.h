@@ -23,7 +23,7 @@ private:
   Eigen::MatrixXd std_dev;
   Eigen::MatrixXd covariance_matrix;
 
-  bool collect_new_policy;
+  bool collect_new_policy = true;
 
   
   float current_value;
