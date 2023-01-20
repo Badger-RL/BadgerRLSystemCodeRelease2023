@@ -14,6 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: git submodule update --init --recursive
+    - name: aptUpdate
+      run: sudo apt update
     - name: dependencies
       run: sudo apt install ccache clang cmake git graphviz libasound2-dev libgl-dev libqt6opengl6-dev libqt6svg6-dev llvm mold net-tools ninja-build pigz qt6-base-dev rsync tk xterm xxd
     - name: generate
