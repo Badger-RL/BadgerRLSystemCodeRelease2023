@@ -28,7 +28,7 @@ bool Environment::shouldReset(GroundTruthRobotPose pose) {
 
 std::vector<float> Environment::getObservation(RobotPose theRobotPose, FieldBall theFieldBall) {
 
-  const float goal_x = 4500.0;
+  const float goal_x = 4800;
   const float goal_y = 0;
 
   float x = theRobotPose.translation.x();
@@ -94,7 +94,7 @@ std::vector<float> Environment::getObservation(RobotPose theRobotPose, FieldBall
   return observation_vector;
 }
 
-
+//deprecated
 std::vector<float> Environment::getObservation(GroundTruthRobotPose pose) {
   const float goal_x = -4500.0;
   const float goal_y = 0;

@@ -111,7 +111,7 @@ class NeuralControlImpl : public NeuralControlImplBase
      cognitionLock.lock();
 
     
-     if (theStrategyStatus.role == PositionRole::toRole(PositionRole::goalkeeper))
+     if (theGameState.playerNumber == 1)
      {
      algorithm = & goalKeeperAlgorithm;
      }
