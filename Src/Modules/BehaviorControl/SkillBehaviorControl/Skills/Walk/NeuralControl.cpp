@@ -71,6 +71,8 @@ Environment environment(field_positions, observation_size, action_size);
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
+
 Algorithm * algorithm;
 
 
@@ -118,6 +120,11 @@ class NeuralControlImpl : public NeuralControlImplBase
      if (theGameState.playerNumber == 1)
      {
      algorithm = & goalKeeperAlgorithm;
+     }
+     else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
+     {
+      algorithm = & defenderAlgorithm;
+
      }
      else{
       algorithm = & attackerAlgorithm;
