@@ -191,25 +191,27 @@ class NeuralControlImpl : public NeuralControlImplBase
     
     theLookForwardSkill();
 
-    float minDistance = std::numeric_limits<float>::max();
-    float angleToClosestObstacle = 180.0;
+    float minObstacleDistance = std::numeric_limits<float>::max();
+    float minTeammateDistance =  std::numeric_limits<float>::max();
+    float angleToClosestObstacle = PI;
+    float angleToClosesTeammate = PI; 
 
   
     for (auto & obstacle : theObstacleModel.obstacles)
     {
       float distance = (obstacle.center - theRobotPose.translation).norm();
-      if (distance < minDistance)
+      if (distance < minObstacleDistance)
       {
-        minDistance = distance;
+        minObstacleDistance = distance;
         angleToClosestObstacle = std::abs(obstacle.center.angle());
       }
     }
     for (auto & teammate : theGlobalTeammatesModel.teammates)
     {
       float distance = (teammate.pose.translation - theRobotPose.translation).norm();
-      if (distance < minDistance)
+      if (distance < minTeammateDistance)
       {
-        minDistance = distance;
+        minTeammateDistance = distance;
         float relativeAngle; 
 
         float x = theRobotPose.translation.x();
@@ -232,11 +234,11 @@ class NeuralControlImpl : public NeuralControlImplBase
         } else {
           relativeAngle = theta_radians + (2*PI);
         }
-        angleToClosestObstacle = std::abs(relativeAngle - angle);
+        angleToClosesTeammate = std::abs(relativeAngle - angle);
 
-        if(angleToClosestObstacle > PI)
+        if(angleToClosesTeammate > PI)
         {
-          angleToClosestObstacle -= PI;
+          angleToClosesTeammate -= PI;
         }
 
       }
@@ -250,11 +252,11 @@ class NeuralControlImpl : public NeuralControlImplBase
                                         0.0f,
                                         0.0f}});
     }
-    else if(angleToClosestObstacle < PI/3.0 && minDistance < 100)
+    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 400)
     {
       //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-      //std::cout << angleToClosestObstacle << std::endl;
-      //std::cout << minDistance << std::endl;
+      //std::cout << angleToClosesTeammate << std::endl;
+      //std::cout << minTeammateDistance << std::endl;
 
        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
                                         0.0f,
