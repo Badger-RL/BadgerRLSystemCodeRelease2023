@@ -4,7 +4,8 @@ option(HandleGoalkeeperCatchBall)
   {
     transition
     {
-      if(theGameState.isGoalkeeper() &&
+      if(false &&
+         theGameState.isGoalkeeper() &&
          between<float>(theFieldBall.timeUntilIntersectsOwnYAxis, 0.3f, 3.f) &&
          theFieldBall.ballWasSeen(100) &&
          theFieldBall.isRollingTowardsOwnGoal &&
