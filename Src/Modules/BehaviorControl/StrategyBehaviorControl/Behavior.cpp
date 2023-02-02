@@ -776,9 +776,9 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
   */
 
 
-  std::cout <<  "printing role" << std::endl;
+  //std::cout <<  "printing role" << std::endl;
   //std::cout << agent.role.typename << std::endl;
-  std::cout <<  "end print role" << std::endl;
+  //std::cout <<  "end print role" << std::endl;
 
   const Vector2f target(0.0,0.0);
 

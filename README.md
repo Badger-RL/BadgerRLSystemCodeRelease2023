@@ -1,4 +1,31 @@
-# B-Human Code Release
+
+# Badger RL README
+
+This is the BadgerRL internal fork of BHumanCodeRelease.
+
+## Setup instructions
+
+This codebase is compatible with both MacOS and Ubuntu 22.04, though the experience tends to be best on Ubuntu 22.04.  
+
+To setup up this repository, first install the dependencies via apt as listed [here](https://wiki.b-human.de/coderelease2022/getting-started/), then run:
+
+
+````
+git clone --recursive https://github.com/Badger-RL/BadgerRLSystem2022.git
+
+````
+
+There are MacOS and Ubuntu specific instructions for generating and compiling the code [here](https://wiki.b-human.de/coderelease2022/getting-started/).
+
+
+To run the simulator after compiling it(example provided for Ubuntu), you can run the following command from the top level directory of the project:
+
+
+````
+./Build/Linux/SimRobot/Develop/SimRobot
+````
+
+# B-Human Code Release README
 
 This is the official 2022 B-Human code release. Documentation can be found in our [public wiki](https://wiki.b-human.de/coderelease2022/).
 

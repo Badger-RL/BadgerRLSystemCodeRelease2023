@@ -1,0 +1,34 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - run: git submodule update --init --recursive
+    - name: release
+      run: lsb_release -a
+    - name: aptUpdate
+      run: sudo apt update
+    - name: dependencies
+      run: sudo apt install ccache clang cmake git graphviz libasound2-dev libgl-dev libqt6opengl6-dev libqt6svg6-dev llvm mold net-tools ninja-build pigz qt6-base-dev rsync tk xterm xxd
+    - name: generate
+      run:  Make/Linux/generate
+    - name: makeSimRobot
+      run:  Make/Linux/compile SimRobot
+    - name: makeBush
+      run:  Make/Linux/compile bush
+    - name: makeNao
+      run:  Make/Linux/compile Nao
+    - name: makeTests
+      run:  Make/Linux/compile Tests
+    - name: runTests
+      run:  ./Build/Linux/Tests/Develop/Tests
