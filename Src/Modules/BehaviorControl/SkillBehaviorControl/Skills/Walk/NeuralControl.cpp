@@ -29,6 +29,8 @@
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Infrastructure/GameState.h"
 #include "Representations/Modeling/RobotPose.h"
+#include "Representations/Modeling/GlobalTeammatesModel.h"
+#include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/MotionControl/WalkingEngineOutput.h"
 #include "Representations/Sensing/ArmContactModel.h"
@@ -69,6 +71,8 @@ Environment environment(field_positions, observation_size, action_size);
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
+
 Algorithm * algorithm;
 
 
@@ -84,6 +88,8 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(PathPlanner),
   REQUIRES(FieldBall),
   REQUIRES(RobotPose),
+  REQUIRES(ObstacleModel),
+  REQUIRES(GlobalTeammatesModel),
   REQUIRES(StrategyStatus),
   REQUIRES(WalkingEngineOutput),
   MODIFIES(BehaviorStatus),
@@ -111,9 +117,14 @@ class NeuralControlImpl : public NeuralControlImplBase
      cognitionLock.lock();
 
     
-     if (theStrategyStatus.role == PositionRole::toRole(PositionRole::goalkeeper))
+     if (theGameState.playerNumber == 1)
      {
      algorithm = & goalKeeperAlgorithm;
+     }
+     else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
+     {
+      algorithm = & defenderAlgorithm;
+
      }
      else{
       algorithm = & attackerAlgorithm;
@@ -179,11 +190,77 @@ class NeuralControlImpl : public NeuralControlImplBase
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, environment.getActionLength()));
     
     theLookForwardSkill();
+
+    float minObstacleDistance = std::numeric_limits<float>::max();
+    float minTeammateDistance =  std::numeric_limits<float>::max();
+    float angleToClosestObstacle = PI;
+    float angleToClosesTeammate = PI; 
+
+  
+    for (auto & obstacle : theObstacleModel.obstacles)
+    {
+      float distance = (obstacle.center - theRobotPose.translation).norm();
+      if (distance < minObstacleDistance)
+      {
+        minObstacleDistance = distance;
+        angleToClosestObstacle = std::abs(obstacle.center.angle());
+      }
+    }
+    for (auto & teammate : theGlobalTeammatesModel.teammates)
+    {
+      float distance = (teammate.pose.translation - theRobotPose.translation).norm();
+      if (distance < minTeammateDistance)
+      {
+        minTeammateDistance = distance;
+        float relativeAngle; 
+
+        float x = theRobotPose.translation.x();
+        float y = theRobotPose.translation.y();
+        float angle = theRobotPose.rotation;
+        
+        if (angle < 0) {
+          angle += 2 * PI;
+        }
+
+        float target_x = teammate.pose.translation.x();
+        float target_y = teammate.pose.translation.y();
+        
+        float delta_x = target_x - x;
+        float delta_y = target_y - y;
+        float theta_radians = atan2(delta_y, delta_x);
+
+        if (theta_radians >= 0) {
+          relativeAngle = theta_radians;
+        } else {
+          relativeAngle = theta_radians + (2*PI);
+        }
+        angleToClosesTeammate = std::abs(relativeAngle - angle);
+
+        if(angleToClosesTeammate > PI)
+        {
+          angleToClosesTeammate -= PI;
+        }
+
+      }
+    }
+
+
+
     if (theFieldBall.timeSinceBallWasSeen > 15000)
     {
       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
                                         0.0f}});
+    }
+    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 400)
+    {
+      //std::cout << "HEURISTIC ACTIVATED" << std::endl;
+      //std::cout << angleToClosesTeammate << std::endl;
+      //std::cout << minTeammateDistance << std::endl;
+
+       theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                                        0.0f,
+                                        0.8f}});
     }
     else{
       theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
