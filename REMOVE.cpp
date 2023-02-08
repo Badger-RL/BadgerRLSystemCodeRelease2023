@@ -13,6 +13,7 @@
 #include <CompiledNN/SimpleNN.h>
 #include <CompiledNN/Tensor.h>
 
+
 #include "Tools/RLConfig.h"
 #include "Tools/RL/RLAlg.h"
 #include "Tools/RL/RLData.h"
@@ -29,46 +30,23 @@
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Infrastructure/GameState.h"
 #include "Representations/Modeling/RobotPose.h"
-#include "Representations/Modeling/GlobalTeammatesModel.h"
-#include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/MotionControl/WalkingEngineOutput.h"
 #include "Representations/Sensing/ArmContactModel.h"
 #include "Representations/Sensing/FootBumperState.h"
 #include <cmath>
 #include "Tools/BehaviorControl/Strategy/PositionRole.h"
-#include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
-#include "Config/policyconfig.json"
 
 #include <stdio.h>
 #include <iostream>
 
+#include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
+
 
 #define PI 3.14159265
 
-// Get type of policies from policyconfig.json
-std::string attacker_policy = policyconfig["attacker_policy"];
-std::string defender_policy = policyconfig["defender_policy"];
-std::string goalie_policy = policyconfig["goalie_policy"];
-
 int observation_size = 12;
-
-int attacker_action_size = 3;
-if (attacker_policy == "kick") {
-    attacker_action_size = 4;
-}
-
-int defender_action_size = 3;
-if (defender_policy == "kick") {
-    defender_action_size = 4;
-}
-
-int goalie_action_size = 3;
-if (goalie_policy == "kick") {
-    goalie_action_size = 4;
-}
-
-// int action_size = 3;
+int action_size = 4;
 bool inWalkKick; /**< Whether the robot is currently in a walk kick. */
 
 
@@ -93,10 +71,8 @@ Environment environment(field_positions, observation_size, action_size);
 
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
-Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
+Algorithm attackKickAlgorithm(policy_path, "AttackKickPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
-Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
-
 Algorithm * algorithm;
 
 
@@ -112,8 +88,6 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(PathPlanner),
   REQUIRES(FieldBall),
   REQUIRES(RobotPose),
-  REQUIRES(ObstacleModel),
-  REQUIRES(GlobalTeammatesModel),
   REQUIRES(StrategyStatus),
   REQUIRES(WalkingEngineOutput),
   MODIFIES(BehaviorStatus),
@@ -122,6 +96,8 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   CALLS(PublishMotion),
   CALLS(WalkAtRelativeSpeed),
   CALLS(WalkToPose),
+  CALLS(WalkToBallAndKick),
+
   DEFINES_PARAMETERS(
   {,
     (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
@@ -135,23 +111,20 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
+  Rangea precisionRange = Rangea(0_deg, 0_deg);
+  Angle kickAngle = 0_deg;
   option(NeuralControl)
   {
 
      cognitionLock.lock();
 
     
-     if (theGameState.playerNumber == 1)
+     if (theStrategyStatus.role == PositionRole::toRole(PositionRole::goalkeeper))
      {
      algorithm = & goalKeeperAlgorithm;
      }
-     else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
-     {
-      algorithm = & defenderAlgorithm;
-
-     }
      else{
-      algorithm = & attackerAlgorithm;
+     algorithm = & attackerAlgorithm;
      }
 
      if (algorithm->getCollectNewPolicy()) {
@@ -213,81 +186,32 @@ class NeuralControlImpl : public NeuralControlImplBase
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, environment.getActionLength()));
     
-    theLookForwardSkill();
+    if ((float)(algorithm->getActionMeans()[3]) > 0.95){
+      inWalkKick = true;
+    }
 
-    float minObstacleDistance = std::numeric_limits<float>::max();
-    float minTeammateDistance =  std::numeric_limits<float>::max();
-    float angleToClosestObstacle = PI;
-    float angleToClosesTeammate = PI; 
+    if (inWalkKick){
+      theWalkToBallAndKickSkill({
+        .targetDirection = 0_deg,
+        .kickType = KickInfo::walkForwardsRightLong,
+        .kickLength = 10000.f,
+      });
 
-  
-    for (auto & obstacle : theObstacleModel.obstacles)
-    {
-      float distance = (obstacle.center - theRobotPose.translation).norm();
-      if (distance < minObstacleDistance)
-      {
-        minObstacleDistance = distance;
-        angleToClosestObstacle = std::abs(obstacle.center.angle());
+      if (theWalkToBallAndKickSkill.isDone()){
+        inWalkKick = false;
       }
-    }
-    for (auto & teammate : theGlobalTeammatesModel.teammates)
-    {
-      float distance = (teammate.pose.translation - theRobotPose.translation).norm();
-      if (distance < minTeammateDistance)
-      {
-        minTeammateDistance = distance;
-        float relativeAngle; 
-
-        float x = theRobotPose.translation.x();
-        float y = theRobotPose.translation.y();
-        float angle = theRobotPose.rotation;
-        
-        if (angle < 0) {
-          angle += 2 * PI;
-        }
-
-        float target_x = teammate.pose.translation.x();
-        float target_y = teammate.pose.translation.y();
-        
-        float delta_x = target_x - x;
-        float delta_y = target_y - y;
-        float theta_radians = atan2(delta_y, delta_x);
-
-        if (theta_radians >= 0) {
-          relativeAngle = theta_radians;
-        } else {
-          relativeAngle = theta_radians + (2*PI);
-        }
-        angleToClosesTeammate = std::abs(relativeAngle - angle);
-
-        if(angleToClosesTeammate > PI)
-        {
-          angleToClosesTeammate -= PI;
-        }
-
-      }
-    }
-
-
-
-    if (theFieldBall.timeSinceBallWasSeen > 15000)
-    {
-      theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                                        0.0f,
-                                        0.0f}});
-    }
-    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 400)
-    {
-      //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-      //std::cout << angleToClosesTeammate << std::endl;
-      //std::cout << minTeammateDistance << std::endl;
-
-       theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                                        0.0f,
-                                        0.8f}});
     }
     else{
-      theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+      theLookForwardSkill();
+      if (theFieldBall.timeSinceBallWasSeen > 15000) {
+        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                                          0.0f,
+                                          0.0f}});
+      }
+
+        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, 
+                                              (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), 
+                                              (float)(algorithm->getActionMeans()[2])}});
     }
     cognitionLock.unlock();
 
