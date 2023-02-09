@@ -143,7 +143,7 @@ SKILL_INTERFACE(LookActive, (bool)(false) withBall, (bool)(false) ignoreBall, (b
  * @param tilt The target tilt angle
  * @param speed The speed with which to move the head
  * @param camera The camera which should have the specified angles
- * @param calibrationMode Whether to set the mode to calibrationMode instead of panAndTiltMode, which disables clipping and interpolation of angles.
+ * @param calibrationMode Whether to set the mode to calibrationMode insteadSkills::WalkToBallAndKickSkill disables clipping and interpolation of angles.
  */
 SKILL_INTERFACE(LookAtAngles, (Angle) pan, (Angle) tilt, (float)(180_deg) speed, (HeadMotionRequest::CameraControlMode)(HeadMotionRequest::autoCamera) camera, (bool)(false) calibrationMode);
 
