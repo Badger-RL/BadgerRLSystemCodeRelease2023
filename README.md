@@ -25,6 +25,32 @@ To run the simulator after compiling it(example provided for Ubuntu), you can ru
 ./Build/Linux/SimRobot/Develop/SimRobot
 ````
 
+## Basic usage instructions
+
+After opening SimRobot, Go to File, then open to select a scene from `Config/Scenes`. A good first scene to try is OneTeamFast.ros2. 
+
+Once you open the Scene file, there will be a window titled scene graph, which shows `Console` and `Robocup`. Double click on each of these to open the visualization window and SimRobot internal console.  
+
+To test out the team of robots in simulation, several commands are important:
+
+To instruct the robots to prepare for a kickoff, type
+
+````
+gc ready
+````
+To tell the robots to stop moving pending a kickoff, type 
+````
+gc set
+````
+and finally, to tell the robots to start the countdown after which the the kickoff will start and the game will enter the playing mode, type
+
+````
+gc playing
+````
+
+
+
+
 # B-Human Code Release README
 
 This is the official 2022 B-Human code release. Documentation can be found in our [public wiki](https://wiki.b-human.de/coderelease2022/).
