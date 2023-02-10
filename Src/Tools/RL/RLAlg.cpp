@@ -19,7 +19,7 @@ std::ifstream metadataFile(metadata_path);
 
 json::value metadata = json::parse(metadataFile);
 
-int actionLength = std::stoi(to_string(metadata["action_length"]));
+actionLength = std::stoi(to_string(metadata["action_length"]));
 
 std_dev = Eigen::MatrixXd(actionLength,1);
 covariance_matrix = Eigen::MatrixXd(actionLength,actionLength);
@@ -77,7 +77,6 @@ void Algorithm::updateModels() {
   action_model = new NeuralNetwork::Model(action_policy_path);
   value_model = new NeuralNetwork::Model(value_policy_path);
 }
-
 
 
 std::vector<float> Algorithm::getFloatVectorFromJSONArray(const json::value &json_value) {

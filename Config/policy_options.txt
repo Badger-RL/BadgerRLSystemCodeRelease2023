@@ -1,9 +1,0 @@
-attacker options:
-push
-kick
-
-defender options:
-push
-
-goalie options:
-push
