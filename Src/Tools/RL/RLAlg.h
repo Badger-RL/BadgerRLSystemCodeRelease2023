@@ -25,6 +25,7 @@ private:
 
   bool collect_new_policy = true;
 
+  int actionLength;
   
   float current_value;
   float prev_value;
@@ -61,6 +62,8 @@ public:
   void updateModels();
   void deletePolicyFiles();
   
+  int getActionLength(){return actionLength;}
+
   void processStdDevAndCov(json::value metadata);
 
   bool getCollectNewPolicy() { return collect_new_policy; }

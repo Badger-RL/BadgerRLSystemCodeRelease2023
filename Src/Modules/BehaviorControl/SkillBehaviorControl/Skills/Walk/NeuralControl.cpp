@@ -71,6 +71,7 @@ Environment environment(field_positions, observation_size, action_size);
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 
 Algorithm * algorithm;
@@ -98,6 +99,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   CALLS(PublishMotion),
   CALLS(WalkAtRelativeSpeed),
   CALLS(WalkToPose),
+  CALLS(WalkToBallAndKick),
   DEFINES_PARAMETERS(
   {,
     (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
@@ -187,7 +189,7 @@ class NeuralControlImpl : public NeuralControlImplBase
         algorithm->applyModel(algorithm->getActionModel(), action_input);
 
 
-    std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, environment.getActionLength()));
+    std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
     
     theLookForwardSkill();
 
@@ -252,7 +254,7 @@ class NeuralControlImpl : public NeuralControlImplBase
                                         0.0f,
                                         0.0f}});
     }
-    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 400)
+    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 1000)
     {
       //std::cout << "HEURISTIC ACTIVATED" << std::endl;
       //std::cout << angleToClosesTeammate << std::endl;
@@ -263,7 +265,23 @@ class NeuralControlImpl : public NeuralControlImplBase
                                         0.8f}});
     }
     else{
+  
+      if (algorithm->getActionLength() == 3){
       theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+      }
+      else if(algorithm->getActionLength() == 4)
+      {
+        theWalkToBallAndKickSkill({
+        .targetDirection = 0_deg,
+        .kickType = KickInfo::walkForwardsRightLong,
+        .kickLength = 1000.f,
+      });
+      }
+      else
+      {
+        std::cout << "unsupported action space" << std::endl;
+      }
+  
     }
     cognitionLock.unlock();
 
