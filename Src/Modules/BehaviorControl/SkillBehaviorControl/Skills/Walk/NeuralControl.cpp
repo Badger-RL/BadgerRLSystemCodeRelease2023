@@ -248,7 +248,7 @@ class NeuralControlImpl : public NeuralControlImplBase
 
 
 
-    if (theFieldBall.timeSinceBallWasSeen > 15000)
+    if (theFieldBall.timeSinceBallWasSeen > 4000)
     {
       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
