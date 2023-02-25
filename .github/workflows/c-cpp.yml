@@ -16,6 +16,8 @@ jobs:
     - run: git submodule update --init --recursive
     - name: release
       run: lsb_release -a
+    - name: info
+      run: ls /usr/bin/
     - name: aptUpdate
       run: sudo apt update
     - name: dependencies
