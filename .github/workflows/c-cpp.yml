@@ -14,10 +14,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: git submodule update --init --recursive
-    - name: release
-      run: lsb_release -a
-    - name: info
-      run: ls /usr/bin/
+    - name: config1
+      run: sudo mkdir --parents /opt/gcc-root/lib/gcc/x86_64-linux-gnu
+    - name: config2
+      run: sudo ln --symbolic /usr/lib/gcc/x86_64-linux-gnu/11 /opt/gcc-root/lib/gcc/x86_64-linux-gnu/11
+    - name: config3
+      run: sudo ln --symbolic /usr/include /opt/gcc-root/
+    - name: config4
+      run: export CCC_OVERRIDE_OPTIONS=^--gcc-toolchain=/opt/gcc-root
+    - name: config5
+      run: export LLVM_COMPILER=clang
+    - name: config6
+      run: export LLVM_CC_NAM=clang-11
+    - name: config7
+      run: LLVM_CXX_NAME=clang++-11
     - name: aptUpdate
       run: sudo apt update
     - name: dependencies
