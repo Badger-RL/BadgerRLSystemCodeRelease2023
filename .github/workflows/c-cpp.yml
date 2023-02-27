@@ -27,7 +27,7 @@ jobs:
     - name: config6
       run: export LLVM_CC_NAM=clang-11
     - name: config7
-      run: LLVM_CXX_NAME=clang++-11
+      run: export LLVM_CXX_NAME=clang++-11
     - name: aptUpdate
       run: sudo apt update
     - name: dependencies
