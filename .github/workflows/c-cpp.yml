@@ -21,13 +21,13 @@ jobs:
     - name: config3
       run: sudo ln --symbolic /usr/include /opt/gcc-root/
     - name: config4
-      run: export CCC_OVERRIDE_OPTIONS=^--gcc-toolchain=/opt/gcc-root
+      run:  echo "CCC_OVERRIDE_OPTIONS=^--gcc-toolchain=/opt/gcc-root" >> $GITHUB_ENV
     - name: config5
-      run: export LLVM_COMPILER=clang
+      run: echo "LLVM_COMPILER=clang" >> $GITHUB_ENV
     - name: config6
-      run: export LLVM_CC_NAM=clang-11
+      run: echo "LLVM_CC_NAM=clang-11" >> $GITHUB_ENV
     - name: config7
-      run: export LLVM_CXX_NAME=clang++-11
+      run: echo "LLVM_CXX_NAME=clang++-11" >> $GITHUB_ENV
     - name: aptUpdate
       run: sudo apt update
     - name: dependencies
