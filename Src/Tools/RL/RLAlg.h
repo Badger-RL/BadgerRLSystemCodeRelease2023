@@ -40,6 +40,8 @@ private:
   std::string action_policy_path;
   std::string value_policy_path;
   std::string metadata_path;
+
+  json::value metadata;
   
   float normalization_clip;
   float normalization_epsilon;

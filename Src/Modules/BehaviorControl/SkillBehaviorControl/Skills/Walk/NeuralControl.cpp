@@ -73,6 +73,7 @@ Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
 Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
+Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
 Algorithm * algorithm;
 
@@ -129,7 +130,7 @@ class NeuralControlImpl : public NeuralControlImplBase
 
      }
      else{
-      algorithm = & attackerAlgorithm;
+      algorithm = & CQLAttackerAlgorithm;
      }
 
      if (algorithm->getCollectNewPolicy()) {
@@ -157,10 +158,6 @@ class NeuralControlImpl : public NeuralControlImplBase
     
     std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
 
-
-
-
-
     if (RLConfig::normalization) {
       current_observation = algorithm->normalizeObservation(current_observation);
     }
@@ -170,35 +167,6 @@ class NeuralControlImpl : public NeuralControlImplBase
     }
     
     std::vector<NeuralNetwork::TensorXf> action_output = algorithm->inference(observation_input);
-
-    /*
-    std::vector<NeuralNetwork::TensorXf> shared_output =
-        algorithm->applyModel(algorithm->getSharedModel(), observation_input);
-    
-    NeuralNetwork::TensorXf latent_action = shared_output[0];
-    NeuralNetwork::TensorXf latent_value = shared_output[1];
-
-    std::vector<NeuralNetwork::TensorXf> value_input(algorithm->getValueModel()->getInputs().size());
-    value_input[0] = latent_value;
-
-    std::vector<NeuralNetwork::TensorXf> value_output =
-        algorithm->applyModel(algorithm->getValueModel(), value_input);
-
-    NeuralNetwork::TensorXf value_estimate = value_output[0];
-    algorithm->setCurrentValue(value_estimate(0));
-    
-    std::vector<NeuralNetwork::TensorXf> action_input(algorithm->getActionModel()->getInputs().size());
-    action_input[0] = latent_action;
-    
-
-    std::vector<NeuralNetwork::TensorXf> action_output =
-        algorithm->applyModel(algorithm->getActionModel(), action_input);
-
-    */
-
-
-
-
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
     

@@ -1,5 +1,6 @@
 #include "RLAlg.h"
 #include <iostream>
+#include <cassert>
 
 Algorithm::Algorithm(const std::string policyPath, const std::string policyName)/* :
 std_dev(action_length, 1),
@@ -17,17 +18,22 @@ std::cout << "Metadata path: "+ metadata_path << std::endl;
 
 std::ifstream metadataFile(metadata_path);
 
-json::value metadata = json::parse(metadataFile);
+metadata = json::parse(metadataFile);
 
 actionLength = std::stoi(to_string(metadata["action_length"]));
 
 std_dev = Eigen::MatrixXd(actionLength,1);
 covariance_matrix = Eigen::MatrixXd(actionLength,actionLength);
 
+if (to_string(metadata["policy_type"]) == "CORL_CQL")
+{
+shared_policy_path = policyPath + policyName +  "/policy.h5";
+}
+else{ //default case is a PPO policy
 shared_policy_path = policyPath + policyName + "/shared_policy.h5";
 action_policy_path = policyPath + policyName + "/action_policy.h5";
 value_policy_path = policyPath + policyName + "/value_policy.h5";
-
+}
 
 
 normalization_clip = std::stof(to_string(metadata["clip"]));
@@ -39,6 +45,25 @@ normalization_var = getFloatVectorFromJSONArray(metadata["var"]);
 }
 
 std::vector<float> Algorithm::normalizeObservation(std::vector<float> observation_vector) {
+
+
+  if (to_string(metadata["policy_type"]) == "CORL_CQL")
+  {
+    assert(observation_vector.size() == 12);
+    for(int i = 0; i < 8; i++)// this removes the dummy information then truncates the empty slots out of the vector
+    {
+      observation_vector[i] = observation_vector[i+4];
+    }
+    observation_vector.resize(8);
+    assert(observation_vector.size() == 8);
+
+  }
+
+
+
+
+  assert(observation_vector.size() == metadata["observation_length"]);
+
   std::vector<float> normalized_vector = std::vector<float>(observation_vector.size());
   for (int i = 0; i < observation_vector.size(); i++) {
     float normalized = (observation_vector[i] - normalization_mean[i]) / sqrt(normalization_var[i] + normalization_epsilon);
@@ -67,15 +92,27 @@ float Algorithm::uniformRandom() {
 }
 
 void Algorithm::deleteModels() {
-  delete shared_model;
-  delete action_model;
-  delete value_model;
+if (to_string(metadata["policy_type"]) == "CORL_CQL")
+  {
+    delete shared_model;
+  }
+  else{
+    delete shared_model;
+    delete action_model;
+    delete value_model;
+  }
 }
 
 void Algorithm::updateModels() {
-  shared_model = new NeuralNetwork::Model(shared_policy_path);
-  action_model = new NeuralNetwork::Model(action_policy_path);
-  value_model = new NeuralNetwork::Model(value_policy_path);
+  if (to_string(metadata["policy_type"]) == "CORL_CQL")
+  {
+    shared_model = new NeuralNetwork::Model(shared_policy_path);
+  }
+  else{
+    shared_model = new NeuralNetwork::Model(shared_policy_path);
+    action_model = new NeuralNetwork::Model(action_policy_path);
+    value_model = new NeuralNetwork::Model(value_policy_path);
+  }
 }
 
 
@@ -90,35 +127,54 @@ std::vector<float> Algorithm::getFloatVectorFromJSONArray(const json::value &jso
 }
 
 void Algorithm::deletePolicyFiles() {
-  std::remove((shared_policy_path).c_str());
-  std::remove((action_policy_path).c_str());
-  std::remove((value_policy_path).c_str());
+  if (to_string(metadata["policy_type"]) == "CORL_CQL")
+  {
+    std::remove((shared_policy_path).c_str());  
+  }
+  else{
+    std::remove((shared_policy_path).c_str());
+    std::remove((action_policy_path).c_str());
+    std::remove((value_policy_path).c_str());
+  }
 }
 
 void Algorithm::waitForNewPolicy() {
   while (true) {
     
-    if (!doesFileExist(shared_policy_path)) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for shared policy \n";
-#endif
-      continue;
+    if (to_string(metadata["policy_type"]) == "CORL_CQL")
+    {
+
+      if (!doesFileExist(shared_policy_path)) {
+        #ifdef DEBUG_MODE
+              std::cout << "waiting for shared policy \n";
+        #endif
+              continue;
+            }
     }
-    
-    if (!doesFileExist(action_policy_path)) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for action policy \n";
-#endif
-      continue;
+    else
+    {
+      if (!doesFileExist(shared_policy_path)) {
+  #ifdef DEBUG_MODE
+        std::cout << "waiting for shared policy \n";
+  #endif
+        continue;
+      }
+      
+      if (!doesFileExist(action_policy_path)) {
+  #ifdef DEBUG_MODE
+        std::cout << "waiting for action policy \n";
+  #endif
+        continue;
+      }
+      
+      if (!doesFileExist(value_policy_path)) {
+  #ifdef DEBUG_MODE
+        std::cout << "waiting for value policy \n";
+  #endif
+        continue;
+      }
     }
-    
-    if (!doesFileExist(value_policy_path)) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for value policy \n";
-#endif
-      continue;
-    }
-    
+
     if (!doesFileExist(metadata_path)) {
 #ifdef DEBUG_MODE
       std::cout << "waiting for meta data \n";
@@ -157,6 +213,22 @@ void Algorithm::processStdDevAndCov(json::value metadata) {
 std::vector<NeuralNetwork::TensorXf> Algorithm::inference(std::vector<NeuralNetwork::TensorXf> observation_input)
 {
    
+    if (to_string(metadata["policy_type"]) == "CORL_CQL")
+    {
+
+
+
+    std::vector<NeuralNetwork::TensorXf> shared_output =
+        applyModel(getSharedModel(), observation_input);
+    
+    NeuralNetwork::TensorXf action = shared_output[0];
+   // std::cout << "REACHED" << std::endl;
+    return shared_output;
+    }
+    else
+    {
+
+
     std::vector<NeuralNetwork::TensorXf> shared_output =
         applyModel(getSharedModel(), observation_input);
     
@@ -179,6 +251,7 @@ std::vector<NeuralNetwork::TensorXf> Algorithm::inference(std::vector<NeuralNetw
     std::vector<NeuralNetwork::TensorXf> action_output =
         applyModel(getActionModel(), action_input);
     return action_output;
+    }
 }
 
 
@@ -201,6 +274,9 @@ std::vector<NeuralNetwork::TensorXf>
 std::vector<float> Algorithm::computeCurrentAction(std::vector<NeuralNetwork::TensorXf> action_output,
                                      const int action_length) {
   action_means = action_output[0];
+  
+  
+  
   Eigen::MatrixXd action_eigen(action_length, 1);
 
   // this vector is created for compatibility with vectortojson
@@ -209,10 +285,9 @@ std::vector<float> Algorithm::computeCurrentAction(std::vector<NeuralNetwork::Te
 
   std::vector<float> newActionMeans;
 
-  for (unsigned int i = 0; i < action_means.size(); i++) {
+  for (unsigned int i = 0; i < action_length; i++) {
 
     action_eigen(i) = action_means[i];
-
     newActionMeans.push_back(action_means[i]);
   }
   action_mean_vector = newActionMeans;
