@@ -154,6 +154,35 @@ void Algorithm::processStdDevAndCov(json::value metadata) {
   covariance_matrix = std_dev.array().matrix().asDiagonal();
 }
 
+std::vector<NeuralNetwork::TensorXf> Algorithm::inference(std::vector<NeuralNetwork::TensorXf> observation_input)
+{
+   
+    std::vector<NeuralNetwork::TensorXf> shared_output =
+        applyModel(getSharedModel(), observation_input);
+    
+    NeuralNetwork::TensorXf latent_action = shared_output[0];
+    NeuralNetwork::TensorXf latent_value = shared_output[1];
+
+    std::vector<NeuralNetwork::TensorXf> value_input(getValueModel()->getInputs().size());
+    value_input[0] = latent_value;
+
+    std::vector<NeuralNetwork::TensorXf> value_output =
+        applyModel(getValueModel(), value_input);
+
+    NeuralNetwork::TensorXf value_estimate = value_output[0];
+    setCurrentValue(value_estimate(0));
+    
+    std::vector<NeuralNetwork::TensorXf> action_input(getActionModel()->getInputs().size());
+    action_input[0] = latent_action;
+    
+
+    std::vector<NeuralNetwork::TensorXf> action_output =
+        applyModel(getActionModel(), action_input);
+    return action_output;
+}
+
+
+
 std::vector<NeuralNetwork::TensorXf>
   Algorithm::applyModel(NeuralNetwork::Model *model, std::vector<NeuralNetwork::TensorXf> input) {
     std::vector<NeuralNetwork::TensorXf> output(model->getOutputs().size());

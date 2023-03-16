@@ -75,7 +75,9 @@ public:
   
   std::vector<NeuralNetwork::TensorXf>
       applyModel(NeuralNetwork::Model *model, const std::vector<NeuralNetwork::TensorXf> input);
-  
+  std::vector<NeuralNetwork::TensorXf>
+      inference(std::vector<NeuralNetwork::TensorXf> observation_input);
+
   NeuralNetwork::Model* getSharedModel() { return shared_model; }
   NeuralNetwork::Model* getActionModel() { return action_model; }
   NeuralNetwork::Model* getValueModel() { return value_model; }

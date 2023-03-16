@@ -156,6 +156,11 @@ class NeuralControlImpl : public NeuralControlImplBase
     }
     
     std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
+
+
+
+
+
     if (RLConfig::normalization) {
       current_observation = algorithm->normalizeObservation(current_observation);
     }
@@ -164,8 +169,9 @@ class NeuralControlImpl : public NeuralControlImplBase
       observation_input[0][i] = current_observation[i];
     }
     
+    std::vector<NeuralNetwork::TensorXf> action_output = algorithm->inference(observation_input);
 
-
+    /*
     std::vector<NeuralNetwork::TensorXf> shared_output =
         algorithm->applyModel(algorithm->getSharedModel(), observation_input);
     
@@ -187,6 +193,11 @@ class NeuralControlImpl : public NeuralControlImplBase
 
     std::vector<NeuralNetwork::TensorXf> action_output =
         algorithm->applyModel(algorithm->getActionModel(), action_input);
+
+    */
+
+
+
 
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
