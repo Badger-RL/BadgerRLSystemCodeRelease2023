@@ -10,11 +10,12 @@
   "deterministic": true,
   "referee_enabled": false,
   "start_from_pretrained": false,
-  "batch_size": 10000,
-  "episode_length": 10000,
+  "batch_size": 1000,
+  "episode_length": 1000,
   "action_steps": 1,
   "epoch_count": 1,
   "seed": 0,
   "normalization": true,
-  "debug_print": false
+  "debug_print": false,
+  "logging": true
 }

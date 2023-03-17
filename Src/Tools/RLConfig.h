@@ -89,7 +89,7 @@ namespace RLConfig
  static bool normalization = to_bool(configData["normalization"]);
  static bool debug_print = to_bool(configData["debug_print"]);
  static bool visualization_mode = to_bool(configData["visualization_mode"]);
-
+ static bool logging = to_bool(configData["logging"]);
  extern std::mutex resetLock;
  extern bool resetting;
 }

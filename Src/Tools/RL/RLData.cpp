@@ -1,15 +1,41 @@
 #include "RLData.h"
 
+
+
+
+
 void DataTransfer::saveTrajectories(const int batch_index) {
   std::string output_string = stringify(trajectories, json::PrettyPrint);
   
+
+#ifndef BUILD_NAO_FLAG
   std::ofstream output_file(getCurrentDirectory() + "/../trajectories_" + std::to_string(batch_index) + ".json");
+#endif
+
+#ifdef BUILD_NAO_FLAG
+  std::ofstream output_file("/home/nao/logs/trajectories_" + std::to_string(batch_index) + ".log");
+#endif
+
+
   output_file << output_string;
   output_file.close();
 
+/*
+turned off for now, a complete file will be useful for training loops, but is unnecesarry for just logging
+
+#ifndef BUILD_NAO_FLAG
   std::ofstream output_file2(getCurrentDirectory() + "/../complete_" + std::to_string(batch_index) + ".txt");
+#endif
+
+#ifdef BUILD_NAO_FLAG
+
+#endif
+
   output_file2 << "complete";
   output_file2.close();
+
+*/
+
 }
 
 // derived from
@@ -27,95 +53,13 @@ std::string DataTransfer::getCurrentDirectory() {
 }
 
 
-#ifndef BUILD_NAO_FLAG
-void DataTransfer::waitForNewPolicy() {
-  while (true) {
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../shared_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for shared policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../action_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for action policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../value_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for value policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../metadata.json")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for meta data \n";
-#endif
-      continue;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    break;
-  }
-}
-#endif
-
-#ifdef BUILD_NAO_FLAG
-void DataTransfer::waitForNewPolicy() {
-  while (true) {
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/shared_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for shared policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/action_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for action policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/value_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for value policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/metadata.json")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for meta data \n";
-#endif
-      continue;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    break;
-  }
-}
-#endif
-
-
-
 void DataTransfer::newTrajectoriesJSON() {
-  trajectories.insert("last_values", json::array{});
-  trajectories.insert("length", RLConfig::batch_size);
+  trajectories = json::object{};
   trajectories.insert("observations", json::array{});
-  trajectories.insert("episode_starts", json::array{});
-  trajectories.insert("values", json::array{});
   trajectories.insert("actions", json::array{});
-  trajectories.insert("action_means", json::array{});
-  trajectories.insert("log_probs", json::array{});
-  trajectories.insert("abstract_states", json::array{});
+  trajectories.insert("next_observations", json::array{});
 }
+
 
 json::array DataTransfer::vectToJSON(std::vector<float> inputVector) {
   json::array output = json::array{};

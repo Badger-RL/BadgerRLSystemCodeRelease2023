@@ -49,6 +49,9 @@ int observation_size = 12;
 int action_size = 3;
 
 
+int timestep = 0;
+
+
 std::mutex cognitionLock;
 
 
@@ -67,6 +70,8 @@ DataTransfer data_transfer(true);
 
 FieldPositions field_positions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 Environment environment(field_positions, observation_size, action_size);
+
+std::vector<float> prevObservation;
 
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
@@ -130,9 +135,10 @@ class NeuralControlImpl : public NeuralControlImplBase
 
      }
      else{
-      algorithm = & CQLAttackerAlgorithm;
+      algorithm = & attackerAlgorithm;
      }
 
+    
      if (algorithm->getCollectNewPolicy()) {
               data_transfer.newTrajectoriesJSON();
               algorithm->waitForNewPolicy();
@@ -146,7 +152,7 @@ class NeuralControlImpl : public NeuralControlImplBase
 
               algorithm->setCollectNewPolicy(false);
     }
-
+      
         
          
     const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
@@ -170,6 +176,23 @@ class NeuralControlImpl : public NeuralControlImplBase
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
     
+   
+    if(timestep > 0){
+      data_transfer.appendTrajectoryValue("observations", prevObservation);
+      data_transfer.appendTrajectoryValue("actions", algorithm->getActionMeanVector());
+      data_transfer.appendTrajectoryValue("next_observations", current_observation);
+
+
+      if (timestep % RLConfig::batch_size == 0)
+      {
+        data_transfer.saveTrajectories(timestep/RLConfig::batch_size);
+        data_transfer.newTrajectoriesJSON();
+      }
+
+    }
+   
+   
+   
     theLookForwardSkill();
 
     float minObstacleDistance = std::numeric_limits<float>::max();
@@ -262,6 +285,13 @@ class NeuralControlImpl : public NeuralControlImplBase
       }
   
     }
+
+
+
+    prevObservation = current_observation;
+    
+    timestep += 1;
+
     cognitionLock.unlock();
 
   }
