@@ -48,6 +48,44 @@ and finally, to tell the robots to start the countdown after which the the kicko
 gc playing
 ````
 
+## Add Image View in SimRobot(Live Stream Robot Perspective)
+
+Image Views allows you to view what robots are seeing using their perception with annotations. It consists of upper and lower view. 
+
+First open SimRobot. After opening SimRobot, go to File and select a scene from 'Config/Scenes'. The following scenes have been tested to work with adding Image View: Game.ros2, OneTeam, and ReplayRobot.ros2.
+
+To Add an Image View, first select the robot(s) where you want to add image views by the following command:
+  
+  To select the robot with the same robot name, type
+  ````
+  robot <robot name>  
+  ````
+  To select all robots, type
+  ````
+  robot all
+  ````
+  To get all robot's name, type
+  ````
+  robot ? 
+  ````
+  
+Then, Type the following command:
+  To add Lower Image view:
+  ````
+  vi image Lower lowerImage
+  vid lowerImage representation:BallPercept:image
+  vid lowerImage representation:LinesPercept:image
+  vid lowerImage representation:ObstaclesImagePercept:image
+  ````
+  To add Upper Image view:
+  ````
+  vi image Upper upperImage
+  vid upperImage representation:BallPercept:image
+  vid upperImage representation:LinesPercept:image
+  vid upperImage representation:ObstaclesImagePercept:image
+  ````
+  
+  Note: Sometimes if you copied and paste all four commands it wouldn't work. Try copying and pasteing commands line by line instead if that's the case.
 
 
 
