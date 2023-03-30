@@ -47,8 +47,19 @@ and finally, to tell the robots to start the countdown after which the the kicko
 ````
 gc playing
 ````
+## Live Stream Physical Robot Image View
+To live stream physical robot view, first select the build checkbox and deploy the robot with the Develop version and a non-negative magic number. 
+  
+  <img width="228" alt="image" src="https://user-images.githubusercontent.com/60803591/228946695-17b0436b-cc41-4352-ac9a-282511240e25.png"> <img width="203" alt="image" src="https://user-images.githubusercontent.com/60803591/228946805-e3fa2ec5-5091-477a-ae30-000253dece46.png">
+  
+  After deployment, open SimRobot, go to File, and select the RemoteRobot.ros2 scene from 'Config/Scenes'. 
+  
+  Select the corresponding wlan address of the robot, otherwise enter the command sc <Robot Name> <ip address> to connect to the robot remotely using the console. You can find the ip address in the folder Config/Robots/<Robot Name>. An image view should get automatically added to the Scene graph.
+  
+  <img width="133" alt="image" src="https://user-images.githubusercontent.com/60803591/228947589-c4133380-c5d0-4111-998d-eae37056096a.png">
 
-## Add Image View in SimRobot(Live Stream Robot Perspective)
+
+## Add Image View in SimRobot(Live Stream SimRobot Perspective)
 
 Image Views allows you to view what robots are seeing using their perception with annotations. It consists of upper and lower view. 
 
