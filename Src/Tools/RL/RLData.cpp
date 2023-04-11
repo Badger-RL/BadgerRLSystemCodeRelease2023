@@ -4,16 +4,19 @@
 
 
 
-void DataTransfer::saveTrajectories(const int batch_index) {
-  std::string output_string = stringify(trajectories, json::PrettyPrint);
+void DataTransfer::saveTrajectories(const int batch_index, int robotNumber) {
+
+  std::string robotNumberString = std::to_string(robotNumber);
+
+  std::string output_string = stringify(trajectories[robotNumberString], json::PrettyPrint);
   
 
 #ifndef BUILD_NAO_FLAG
-  std::ofstream output_file(getCurrentDirectory() + "/../trajectories_" + std::to_string(batch_index) + ".json");
+  std::ofstream output_file(getCurrentDirectory() + "/../trajectories_" +robotNumberString+ "_" + std::to_string(batch_index) + ".json");
 #endif
 
 #ifdef BUILD_NAO_FLAG
-  std::ofstream output_file("/home/nao/logs/trajectories_" + std::to_string(batch_index) + ".log");
+  std::ofstream output_file("/home/nao/logs/trajectories_" + robotNumberString  +"_"+ std::to_string(batch_index) + ".log");
 #endif
 
 
@@ -53,11 +56,17 @@ std::string DataTransfer::getCurrentDirectory() {
 }
 
 
-void DataTransfer::newTrajectoriesJSON() {
-  trajectories = json::object{};
-  trajectories.insert("observations", json::array{});
-  trajectories.insert("actions", json::array{});
-  trajectories.insert("next_observations", json::array{});
+void DataTransfer::newTrajectoriesJSON(int robotNumber) {
+  std::string robotNumberString = std::to_string(robotNumber);
+  if(!(json::has_key(trajectories, robotNumberString))){
+    trajectories.insert(robotNumberString,json::object{});
+  }
+  else{
+    trajectories[robotNumberString] = json::object{};
+  }
+  trajectories[robotNumberString].insert("observations", json::array{});
+  trajectories[robotNumberString].insert("actions", json::array{});
+  trajectories[robotNumberString].insert("next_observations", json::array{});
 }
 
 
@@ -65,6 +74,16 @@ json::array DataTransfer::vectToJSON(std::vector<float> inputVector) {
   json::array output = json::array{};
   for (float i : inputVector) {
     output.push_back(i);
+  }
+  return output;
+}
+
+
+
+std::vector<float> DataTransfer::JSON_to_vect(json::array input) {
+  std::vector<float> output;
+  for (json::value i : input) {
+    output.push_back(std::stof(to_string(i)));
   }
   return output;
 }
