@@ -98,6 +98,138 @@ Then, Type the following command:
   
   Note: Sometimes if you copied and paste all four commands it wouldn't work. Try copying and pasteing commands line by line instead if that's the case.
 
+# Log File Explanation
+  
+The B-Human current release comes with a flexible logging system, which may help with debugging processes. Please check out the previous section to live stream or use the default logger.
+
+If, for some reason, we want to modify the information contained in the log file, we can modify the configuration of loggers.
+
+First, we must travel to "Config/Scenarios" to pick one Scenario. Notably, each Scenario corresponds to different circumstances or roles and has individual logger configurations, respectively. For demonstration, we select the default Scenario. And we can find the "logger.cfg" file in the sub-folder. There are multiple configs that we can modify: "enabled", "path", "numOfBuffers", "sizeOfBuffer", "writePriority", "minFreeDriverSpace", and "representationPerThread".
+  
+````
+// Is logging enabled?
+enabled = true;
+
+// The directory that will contain the log file.
+path = "/home/nao/logging";
+
+// The number of buffers allocated.
+numOfBuffers = 12000;
+
+// The size of each buffer in bytes.
+sizeOfBuffer = 200000;
+
+// The scheduling priority of the writer thread.
+writePriority = -2;
+
+// Logging will stop if less MB are available to the target device.
+minFreeDriveSpace = 100;
+
+// Representations to log per thread
+representationsPerThread = [
+  {
+    thread = Upper;
+    representations = [
+      JPEGImage,
+
+      BallPercept,
+      BallSpots,
+      BodyContour,
+      CameraInfo,
+      CameraMatrix,
+      CirclePercept,
+      FieldBoundary,
+      FrameInfo,
+      ImageCoordinateSystem,
+      LinesPercept,
+      ObstaclesFieldPercept,
+      ObstaclesImagePercept,
+      OdometryData,
+      PenaltyMarkPercept,
+    ];
+  },
+  {
+    thread = Lower;
+    representations = [
+      JPEGImage,
+
+      BallPercept,
+      BallSpots,
+      BodyContour,
+      CameraInfo,
+      CameraMatrix,
+      CirclePercept,
+      FieldBoundary,
+      FrameInfo,
+      ImageCoordinateSystem,
+      LinesPercept,
+      ObstaclesFieldPercept,
+      ObstaclesImagePercept,
+      OdometryData,
+      PenaltyMarkPercept,
+    ];
+  },
+  {
+    thread = Cognition;
+    representations = [
+      ActivationGraph,
+      AlternativeRobotPoseHypothesis,
+      ArmMotionRequest,
+      BallModel,
+      BehaviorStatus,
+      CameraCalibration,
+      GameState,
+      IMUCalibration,
+      MotionRequest,
+      ObstacleModel,
+      OdometryData,
+      RobotHealth,
+      RobotPose,
+      SelfLocalizationHypotheses,
+      SideInformation,
+      SkillRequest,
+      StrategyStatus,
+      TeammatesBallModel,
+      TeamData,
+    ];
+  },
+  {
+    thread = Motion;
+    representations = [
+      FallDownState,
+      FootOffset,
+      FootSoleRotationCalibration,
+      FootSupport,
+      FrameInfo,
+      FsrData,
+      FsrSensorData,
+      GroundContactState,
+      InertialSensorData,
+      InertialData,
+      JointCalibration,
+      JointPlay,
+      JointRequest,
+      JointSensorData,
+      KeyStates,
+      MotionInfo,
+      OdometryData,
+      OdometryDataPreview,
+      SystemSensorData,
+      WalkLearner,
+      WalkStepData,
+    ];
+  },
+  {
+    thread = Audio;
+    representations = [
+      AudioData,
+      FrameInfo,
+      Whistle,
+    ];
+  }
+];
+````
+And supposedly, many representations can be found in "Src/Representations". So theoretically, we can customize data being reported from loggers and thusly extract more critical data such as the TorsoMatrix (Src/Representations/Sensing/TorsoMatrix.cpp) or raw JPEGImage (Src/Representations/Infrastructure/JPEGImage.cpp). The format of log files and the validity of such aforementioned customization shall be further explored.
 
 
 # B-Human Code Release README
