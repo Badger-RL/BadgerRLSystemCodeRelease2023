@@ -48,11 +48,18 @@
 int observation_size = 12;
 int action_size = 3;
 
+
+std::vector<float> obstacleXVector;
+std::vector<float> obstacleYVector;
+
 //we keep track of timesteps separately for each robot, using this json object
 json::object timeData = json::object{};
 
 //we keep the previousObservation seperately for each robot, using this json object
 json::object prevObservationData = json::object{};
+
+
+
 
 
 std::mutex cognitionLock;
@@ -214,18 +221,53 @@ class NeuralControlImpl : public NeuralControlImplBase
     float angleToClosestObstacle = PI;
     float angleToClosesTeammate = PI; 
 
+
+    std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
+
+
+    std::cout << "predicted position" << std::endl;
+    for (float i :predictedPosition )
+    {
+      std::cout << i << std::endl;
+    }
+
   
+    bool shield = false;
+
+    if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
+      shield = true;
+    }
+    if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
+    {
+      shield = true;
+    }
+     if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
+    {
+      shield = true;
+    }
+
+
+
     for (auto & obstacle : theObstacleModel.obstacles)
     {
+      obstacleXVector.push_back(obstacle.center.x());
+      obstacleYVector.push_back(obstacle.center.y());
+
+      /*
       float distance = (obstacle.center - theRobotPose.translation).norm();
       if (distance < minObstacleDistance)
       {
         minObstacleDistance = distance;
         angleToClosestObstacle = std::abs(obstacle.center.angle());
       }
+      */
     }
     for (auto & teammate : theGlobalTeammatesModel.teammates)
     {
+      obstacleXVector.push_back(teammate.pose.translation.x());
+      obstacleYVector.push_back(teammate.pose.translation.y());
+
+      /*
       float distance = (teammate.pose.translation - theRobotPose.translation).norm();
       if (distance < minTeammateDistance)
       {
@@ -258,11 +300,27 @@ class NeuralControlImpl : public NeuralControlImplBase
         {
           angleToClosesTeammate -= PI;
         }
-
+      
       }
+      */
+
     }
+    
+    while (obstacleXVector.size() > 15)
+      {
+        obstacleXVector.erase(obstacleXVector.begin());
+        obstacleYVector.erase(obstacleYVector.begin());
+        assert(obstacleXVector.size() == obstacleYVector.size());
+       // std::cout << obstacleXVector.size() << std::endl;
+      }
 
 
+      
+
+
+
+
+    
 
     if (theFieldBall.timeSinceBallWasSeen > 4000)
     {
@@ -270,15 +328,15 @@ class NeuralControlImpl : public NeuralControlImplBase
                                         0.0f,
                                         0.0f}});
     }
-    else if(/*angleToClosesTeammate < PI/3.0 && minTeammateDistance < 1000*/ false)
+    else if( shield /*angleToClosesTeammate < PI/3.0 && minTeammateDistance < 1000*/ )
     {
-      //std::cout << "HEURISTIC ACTIVATED" << std::endl;
+      std::cout << "HEURISTIC ACTIVATED" << std::endl;
       //std::cout << angleToClosesTeammate << std::endl;
       //std::cout << minTeammateDistance << std::endl;
 
-       theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
-                                        0.8f}});
+                                        0.0f}});
     }
     else{
   

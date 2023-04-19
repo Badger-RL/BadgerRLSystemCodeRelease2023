@@ -1,4 +1,5 @@
 #include "RLEnv.h"
+#include <algorithm>
 
 Environment::Environment (const FieldPositions field_positions, const int observation_size, const int action_size) :
   observation_length ((unsigned int)(observation_size)),
@@ -23,6 +24,54 @@ bool Environment::shouldReset(GroundTruthRobotPose pose) {
   } else {
     return false;
   }
+}
+
+
+float clamp(float number, float low, float high)
+{
+  return number <= low ? low : number >= high ? high : number;
+}
+
+
+std::vector<float> Environment::getPredictedPosition(RobotPose theRobotPose, std::vector<float> action)
+{
+
+float robotX = theRobotPose.translation.x();
+float robotY = theRobotPose.translation.y();
+float angle = theRobotPose.rotation;        
+if (angle < 0) {
+  angle += 2 * PI;
+}
+
+ float policy_target_x = robotX + (
+      (
+          (cos(angle) * clamp(action[1], -1, 1))
+          + (cos(angle + PI / 2) * clamp(action[2], -1.0, 1.0))
+      )
+      * 200
+  ); 
+  float policy_target_y = robotY + (
+      (
+          (sin(angle) * clamp(action[1], -1, 1))
+          + (sin(angle + PI / 2) * clamp(action[2], -1.0, 1.0))
+      )
+      * 200
+  );
+
+  robotX = (
+      robotX * (1 - 0.2)
+      + policy_target_x * 0.2
+  ); 
+  robotY = (
+      robotY * (1 - 0.2)
+      + policy_target_y * 0.2
+  );  
+
+  std::vector<float> result;
+  result.push_back(robotX);
+  result.push_back(robotY);
+  return result;
+
 }
 
 
