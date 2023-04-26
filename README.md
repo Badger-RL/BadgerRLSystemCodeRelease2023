@@ -231,6 +231,13 @@ representationsPerThread = [
 ````
 And supposedly, many representations can be found in "Src/Representations". So theoretically, we can customize data being reported from loggers and thusly extract more critical data such as the TorsoMatrix (Src/Representations/Sensing/TorsoMatrix.cpp) or raw JPEGImage (Src/Representations/Infrastructure/JPEGImage.cpp). The format of log files and the validity of such aforementioned customization shall be further explored.
 
+# Mac compiling for NAO details
+When you are compiling the code to be deployed on the physical NAO robots, you must make a small change Src/Tools/RLConfig.h.
+Navigate to the file and find the line (about line 20):
+
+#define BUILD_MAC_NAO 2 // 1 for NAO, 0 for MAC, 2 for LINUX
+
+When you are compiling for the NAOs on Mac change this flag to be 1. If you are compiling for MAC for SimRobot, change this to be 0, and for all other uses (likely Linux), leave at 2 or change to 2 if it is not. This should then compile with no problems but if it doesn't, reach out to Adam and he will help.
 
 # B-Human Code Release README
 
