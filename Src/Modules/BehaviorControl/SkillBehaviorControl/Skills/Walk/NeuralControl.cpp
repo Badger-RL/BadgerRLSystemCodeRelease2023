@@ -197,7 +197,8 @@ class NeuralControlImpl : public NeuralControlImplBase
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
     
-   
+    if (RLConfig::logging)
+    {
     if (timestep == 0){
         data_transfer.newTrajectoriesJSON(theGameState.playerNumber);
     }
@@ -212,6 +213,7 @@ class NeuralControlImpl : public NeuralControlImplBase
       }
 
     }
+    }
 
    
     theLookForwardSkill();
@@ -225,14 +227,17 @@ class NeuralControlImpl : public NeuralControlImplBase
     std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
 
 
-    std::cout << "predicted position" << std::endl;
-    for (float i :predictedPosition )
-    {
-      std::cout << i << std::endl;
-    }
+    //std::cout << "predicted position" << std::endl;
+    //for (float i :predictedPosition )
+    //{
+    //  std::cout << i << std::endl;
+    //}
 
   
     bool shield = false;
+
+    if (RLConfig::shieldEnabled)
+    {
 
     if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
       shield = true;
@@ -316,7 +321,7 @@ class NeuralControlImpl : public NeuralControlImplBase
 
 
       
-
+    }
 
 
 
@@ -328,11 +333,9 @@ class NeuralControlImpl : public NeuralControlImplBase
                                         0.0f,
                                         0.0f}});
     }
-    else if( shield /*angleToClosesTeammate < PI/3.0 && minTeammateDistance < 1000*/ )
+    else if(RLConfig::shieldEnabled && shield)
     {
       std::cout << "HEURISTIC ACTIVATED" << std::endl;
-      //std::cout << angleToClosesTeammate << std::endl;
-      //std::cout << minTeammateDistance << std::endl;
 
        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
