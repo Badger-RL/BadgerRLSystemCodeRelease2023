@@ -105,9 +105,10 @@ namespace RLConfig
  static int epoch_count = std::stoi(to_string(configData["epoch_count"]));
  static int seed = std::stoi(to_string(configData["seed"]));
  static bool normalization = to_bool(configData["normalization"]);
+ static bool shieldEnabled = to_bool(configData["shield_enabled"]);
  static bool debug_print = to_bool(configData["debug_print"]);
  static bool visualization_mode = to_bool(configData["visualization_mode"]);
-
+ static bool logging = to_bool(configData["logging"]);
  extern std::mutex resetLock;
  extern bool resetting;
 }

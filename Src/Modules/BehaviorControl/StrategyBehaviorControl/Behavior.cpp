@@ -756,8 +756,8 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     return ballSearch->execute(agent, otherAgents);
   }
 
-  if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > 8000)
-    return ballSearch->execute(agent, otherAgents);
+  //if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > 8000)
+  //  return ballSearch->execute(agent, otherAgents);
   /*
   if(agent.proposedSetPlay != SetPlay::none && agent.setPlayStep >= 0 ) // TODO: if < 0, the agents should still go to their positions... 
   {

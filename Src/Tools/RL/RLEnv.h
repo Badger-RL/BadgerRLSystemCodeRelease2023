@@ -57,6 +57,9 @@ public:
   std::vector<float> getObservation(GroundTruthRobotPose pose);
   std::vector<float> getObservation(RobotPose pose, FieldBall ball);
 
+
+  std::vector<float> getPredictedPosition(RobotPose theRobotPose, std::vector<float> action);
+
   
   void setFieldPositions(const float virtual_ball_X_position, const float virtual_ball_Y_position,
                          const float dummy_defender_1_X_position, const float dummy_defender_1_Y_position,

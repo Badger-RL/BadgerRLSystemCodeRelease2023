@@ -40,6 +40,8 @@ private:
   std::string action_policy_path;
   std::string value_policy_path;
   std::string metadata_path;
+
+  json::value metadata;
   
   float normalization_clip;
   float normalization_epsilon;
@@ -75,7 +77,9 @@ public:
   
   std::vector<NeuralNetwork::TensorXf>
       applyModel(NeuralNetwork::Model *model, const std::vector<NeuralNetwork::TensorXf> input);
-  
+  std::vector<NeuralNetwork::TensorXf>
+      inference(std::vector<NeuralNetwork::TensorXf> observation_input);
+
   NeuralNetwork::Model* getSharedModel() { return shared_model; }
   NeuralNetwork::Model* getActionModel() { return action_model; }
   NeuralNetwork::Model* getValueModel() { return value_model; }

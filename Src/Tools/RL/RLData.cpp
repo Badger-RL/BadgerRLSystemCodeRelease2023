@@ -1,15 +1,44 @@
 #include "RLData.h"
 
-void DataTransfer::saveTrajectories(const int batch_index) {
-  std::string output_string = stringify(trajectories, json::PrettyPrint);
+
+
+
+
+void DataTransfer::saveTrajectories(const int batch_index, int robotNumber) {
+
+  std::string robotNumberString = std::to_string(robotNumber);
+
+  std::string output_string = stringify(trajectories[robotNumberString], json::PrettyPrint);
   
-  std::ofstream output_file(getCurrentDirectory() + "/../trajectories_" + std::to_string(batch_index) + ".json");
+
+#ifndef BUILD_NAO_FLAG
+  std::ofstream output_file(getCurrentDirectory() + "/../trajectories_" +robotNumberString+ "_" + std::to_string(batch_index) + ".json");
+#endif
+
+#ifdef BUILD_NAO_FLAG
+  std::ofstream output_file("/home/nao/logs/trajectories_" + robotNumberString  +"_"+ std::to_string(batch_index) + ".log");
+#endif
+
+
   output_file << output_string;
   output_file.close();
 
+/*
+turned off for now, a complete file will be useful for training loops, but is unnecesarry for just logging
+
+#ifndef BUILD_NAO_FLAG
   std::ofstream output_file2(getCurrentDirectory() + "/../complete_" + std::to_string(batch_index) + ".txt");
+#endif
+
+#ifdef BUILD_NAO_FLAG
+
+#endif
+
   output_file2 << "complete";
   output_file2.close();
+
+*/
+
 }
 
 // derived from
@@ -27,100 +56,34 @@ std::string DataTransfer::getCurrentDirectory() {
 }
 
 
-#ifndef BUILD_NAO_FLAG
-void DataTransfer::waitForNewPolicy() {
-  while (true) {
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../shared_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for shared policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../action_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for action policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../value_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for value policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/../metadata.json")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for meta data \n";
-#endif
-      continue;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    break;
+void DataTransfer::newTrajectoriesJSON(int robotNumber) {
+  std::string robotNumberString = std::to_string(robotNumber);
+  if(!(json::has_key(trajectories, robotNumberString))){
+    trajectories.insert(robotNumberString,json::object{});
   }
-}
-#endif
-
-#ifdef BUILD_NAO_FLAG
-void DataTransfer::waitForNewPolicy() {
-  while (true) {
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/shared_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for shared policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/action_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for action policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/value_policy.h5")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for value policy \n";
-#endif
-      continue;
-    }
-    
-    if (!doesFileExist(getCurrentDirectory() + "/Config/metadata.json")) {
-#ifdef DEBUG_MODE
-      std::cout << "waiting for meta data \n";
-#endif
-      continue;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    break;
+  else{
+    trajectories[robotNumberString] = json::object{};
   }
+  trajectories[robotNumberString].insert("observations", json::array{});
+  trajectories[robotNumberString].insert("actions", json::array{});
+  trajectories[robotNumberString].insert("next_observations", json::array{});
 }
-#endif
 
-
-
-void DataTransfer::newTrajectoriesJSON() {
-  trajectories.insert("last_values", json::array{});
-  trajectories.insert("length", RLConfig::batch_size);
-  trajectories.insert("observations", json::array{});
-  trajectories.insert("episode_starts", json::array{});
-  trajectories.insert("values", json::array{});
-  trajectories.insert("actions", json::array{});
-  trajectories.insert("action_means", json::array{});
-  trajectories.insert("log_probs", json::array{});
-  trajectories.insert("abstract_states", json::array{});
-}
 
 json::array DataTransfer::vectToJSON(std::vector<float> inputVector) {
   json::array output = json::array{};
   for (float i : inputVector) {
     output.push_back(i);
+  }
+  return output;
+}
+
+
+
+std::vector<float> DataTransfer::JSON_to_vect(json::array input) {
+  std::vector<float> output;
+  for (json::value i : input) {
+    output.push_back(std::stof(to_string(i)));
   }
   return output;
 }

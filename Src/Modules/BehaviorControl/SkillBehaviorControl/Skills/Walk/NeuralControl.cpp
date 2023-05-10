@@ -49,6 +49,19 @@ int observation_size = 12;
 int action_size = 3;
 
 
+std::vector<float> obstacleXVector;
+std::vector<float> obstacleYVector;
+
+//we keep track of timesteps separately for each robot, using this json object
+json::object timeData = json::object{};
+
+//we keep the previousObservation seperately for each robot, using this json object
+json::object prevObservationData = json::object{};
+
+
+
+
+
 std::mutex cognitionLock;
 
 
@@ -68,11 +81,14 @@ DataTransfer data_transfer(true);
 FieldPositions field_positions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 Environment environment(field_positions, observation_size, action_size);
 
+//std::vector<float> prevObservation;
+
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
 Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
+Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
 Algorithm * algorithm;
 
@@ -118,6 +134,13 @@ class NeuralControlImpl : public NeuralControlImplBase
 
      cognitionLock.lock();
 
+     if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
+     {
+        timeData.insert(std::to_string(theGameState.playerNumber), 0);
+     }
+
+     int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
+     
     
      if (theGameState.playerNumber == 1)
      {
@@ -132,8 +155,8 @@ class NeuralControlImpl : public NeuralControlImplBase
       algorithm = & attackerAlgorithm;
      }
 
+    
      if (algorithm->getCollectNewPolicy()) {
-              data_transfer.newTrajectoriesJSON();
               algorithm->waitForNewPolicy();
 
               algorithm->deleteModels();
@@ -145,7 +168,7 @@ class NeuralControlImpl : public NeuralControlImplBase
 
               algorithm->setCollectNewPolicy(false);
     }
-
+      
         
          
     const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
@@ -155,42 +178,44 @@ class NeuralControlImpl : public NeuralControlImplBase
                                     shared_input[i].layer->nodes[shared_input[i].nodeIndex].outputDimensions[shared_input[i].tensorIndex]);
     }
     
-    std::vector<float> current_observation = environment.getObservation(theRobotPose, theFieldBall);
+    std::vector<float> rawObservation = environment.getObservation(theRobotPose, theFieldBall);
+
+    std::vector<float> inputObservation;
+
     if (RLConfig::normalization) {
-      current_observation = algorithm->normalizeObservation(current_observation);
+      inputObservation = algorithm->normalizeObservation(rawObservation);
+    }
+    else{
+      inputObservation = rawObservation;
     }
 
     for (int i = 0; i < observation_size; i++) {
-      observation_input[0][i] = current_observation[i];
+      observation_input[0][i] = inputObservation[i];
     }
     
-
-
-    std::vector<NeuralNetwork::TensorXf> shared_output =
-        algorithm->applyModel(algorithm->getSharedModel(), observation_input);
-    
-    NeuralNetwork::TensorXf latent_action = shared_output[0];
-    NeuralNetwork::TensorXf latent_value = shared_output[1];
-
-    std::vector<NeuralNetwork::TensorXf> value_input(algorithm->getValueModel()->getInputs().size());
-    value_input[0] = latent_value;
-
-    std::vector<NeuralNetwork::TensorXf> value_output =
-        algorithm->applyModel(algorithm->getValueModel(), value_input);
-
-    NeuralNetwork::TensorXf value_estimate = value_output[0];
-    algorithm->setCurrentValue(value_estimate(0));
-    
-    std::vector<NeuralNetwork::TensorXf> action_input(algorithm->getActionModel()->getInputs().size());
-    action_input[0] = latent_action;
-    
-
-    std::vector<NeuralNetwork::TensorXf> action_output =
-        algorithm->applyModel(algorithm->getActionModel(), action_input);
-
+    std::vector<NeuralNetwork::TensorXf> action_output = algorithm->inference(observation_input);
 
     std::vector<float> tempCurrentAction = std::vector<float>(algorithm->computeCurrentAction(action_output, algorithm->getActionLength()));
     
+    if (RLConfig::logging)
+    {
+    if (timestep == 0){
+        data_transfer.newTrajectoriesJSON(theGameState.playerNumber);
+    }
+    else  {
+      data_transfer.appendTrajectoryValue("observations", data_transfer.JSON_to_vect(as_array(prevObservationData[std::to_string(theGameState.playerNumber)])),theGameState.playerNumber);
+      data_transfer.appendTrajectoryValue("actions", algorithm->getActionMeanVector(),theGameState.playerNumber);
+      data_transfer.appendTrajectoryValue("next_observations", rawObservation,theGameState.playerNumber);
+
+      if ((timestep) % RLConfig::batch_size  == 0 ){
+        data_transfer.saveTrajectories(timestep/RLConfig::batch_size,theGameState.playerNumber);
+        data_transfer.newTrajectoriesJSON(theGameState.playerNumber);
+      }
+
+    }
+    }
+
+   
     theLookForwardSkill();
 
     float minObstacleDistance = std::numeric_limits<float>::max();
@@ -198,18 +223,56 @@ class NeuralControlImpl : public NeuralControlImplBase
     float angleToClosestObstacle = PI;
     float angleToClosesTeammate = PI; 
 
+
+    std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
+
+
+    //std::cout << "predicted position" << std::endl;
+    //for (float i :predictedPosition )
+    //{
+    //  std::cout << i << std::endl;
+    //}
+
   
+    bool shield = false;
+
+    if (RLConfig::shieldEnabled)
+    {
+
+    if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
+      shield = true;
+    }
+    if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
+    {
+      shield = true;
+    }
+     if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
+    {
+      shield = true;
+    }
+
+
+
     for (auto & obstacle : theObstacleModel.obstacles)
     {
+      obstacleXVector.push_back(obstacle.center.x());
+      obstacleYVector.push_back(obstacle.center.y());
+
+      /*
       float distance = (obstacle.center - theRobotPose.translation).norm();
       if (distance < minObstacleDistance)
       {
         minObstacleDistance = distance;
         angleToClosestObstacle = std::abs(obstacle.center.angle());
       }
+      */
     }
     for (auto & teammate : theGlobalTeammatesModel.teammates)
     {
+      obstacleXVector.push_back(teammate.pose.translation.x());
+      obstacleYVector.push_back(teammate.pose.translation.y());
+
+      /*
       float distance = (teammate.pose.translation - theRobotPose.translation).norm();
       if (distance < minTeammateDistance)
       {
@@ -242,27 +305,41 @@ class NeuralControlImpl : public NeuralControlImplBase
         {
           angleToClosesTeammate -= PI;
         }
-
+      
       }
+      */
+
+    }
+    
+    while (obstacleXVector.size() > 15)
+      {
+        obstacleXVector.erase(obstacleXVector.begin());
+        obstacleYVector.erase(obstacleYVector.begin());
+        assert(obstacleXVector.size() == obstacleYVector.size());
+       // std::cout << obstacleXVector.size() << std::endl;
+      }
+
+
+      
     }
 
 
 
-    if (theFieldBall.timeSinceBallWasSeen > 15000)
+    
+
+    if (theFieldBall.timeSinceBallWasSeen > 4000)
     {
       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
                                         0.0f}});
     }
-    else if(angleToClosesTeammate < PI/3.0 && minTeammateDistance < 1000)
+    else if(RLConfig::shieldEnabled && shield)
     {
       //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-      //std::cout << angleToClosesTeammate << std::endl;
-      //std::cout << minTeammateDistance << std::endl;
 
-       theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+       theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
-                                        0.8f}});
+                                        0.0f}});
     }
     else{
   
@@ -283,6 +360,20 @@ class NeuralControlImpl : public NeuralControlImplBase
       }
   
     }
+
+
+  if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
+    prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
+
+  }
+  else{
+    prevObservationData[std::to_string(theGameState.playerNumber)] = data_transfer.vectToJSON(rawObservation);
+  }
+    
+
+    timeData[std::to_string(theGameState.playerNumber)] = timestep + 1;
+    
+
     cognitionLock.unlock();
 
   }
