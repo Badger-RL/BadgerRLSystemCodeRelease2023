@@ -17,6 +17,7 @@ tags
 Thumbs.db
 /Build
 /Config/Images
+Config/Policies/physical_experiment_export/
 /Config/Scenes/Includes/connect.con
 /Config/Scenes/Includes/replay.con
 /Make/Hooks/gitpath
