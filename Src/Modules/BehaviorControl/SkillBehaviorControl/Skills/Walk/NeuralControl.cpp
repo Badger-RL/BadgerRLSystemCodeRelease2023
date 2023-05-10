@@ -335,7 +335,7 @@ class NeuralControlImpl : public NeuralControlImplBase
     }
     else if(RLConfig::shieldEnabled && shield)
     {
-      std::cout << "HEURISTIC ACTIVATED" << std::endl;
+      //std::cout << "HEURISTIC ACTIVATED" << std::endl;
 
        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                                         0.0f,
