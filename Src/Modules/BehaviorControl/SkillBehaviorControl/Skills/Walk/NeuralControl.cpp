@@ -24,6 +24,7 @@
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
 #include "Representations/BehaviorControl/Skills.h"
+#include "Representations/Communication/TeamData.h"
 #include "Representations/BehaviorControl/StrategyStatus.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/BehaviorControl/FieldBall.h"
@@ -106,6 +107,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   REQUIRES(FieldBall),
   REQUIRES(RobotPose),
   REQUIRES(ObstacleModel),
+  REQUIRES(TeamData),
   REQUIRES(GlobalTeammatesModel),
   REQUIRES(StrategyStatus),
   REQUIRES(WalkingEngineOutput),
@@ -127,6 +129,73 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 
 
+int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall, GameState theGameState)
+{
+
+
+
+  int higherNumberedPlayers = 0;
+
+  for (auto & teammate : theTeamData.teammates)
+  {
+    if (teammate.number > theGameState.playerNumber){
+    higherNumberedPlayers ++;
+    }
+  }
+
+  
+
+  if (higherNumberedPlayers >= 2 ){
+    return 3;
+  }
+  else{
+    return 2;
+  }
+
+// if we are among the two closest robots, we will be an attacker, otherwise, we will be a defender
+   
+   /*
+    std::vector<float> distances;
+
+
+    std::cout << theTeamData.teammates.size() << std::endl;
+    //assert (theTeamData.teammates.size() == 4);
+    for (auto & teammate : theTeamData.teammates)
+    {
+      if (teammate.number != 1 && teammate.number != theGameState.playerNumber)
+      {
+        float distance = sqrt(pow(teammate.theRobotPose.translation.x() - theFieldBall.positionOnField.x(),2) + pow(teammate.theRobotPose.translation.y() - theFieldBall.positionOnField.y(), 2));
+        distances.push_back(distance);
+
+      }
+    }
+
+    float ownDistance = sqrt(pow(theRobotPose.translation.x() - theFieldBall.positionOnField.x(),2) + pow(theRobotPose.translation.y()- theFieldBall.positionOnField.y(), 2));
+
+
+    int numCloser = 0;
+
+    for (float distance : distances)
+    {
+      if (ownDistance < distance){
+        numCloser++; 
+      }
+    }
+
+    if (numCloser >=2){
+      return 2;
+    }
+    else{
+      return 3;
+    }
+
+*/
+
+
+}
+
+
+
 class NeuralControlImpl : public NeuralControlImplBase
 {
   option(NeuralControl)
@@ -142,6 +211,7 @@ class NeuralControlImpl : public NeuralControlImplBase
      int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
      
     
+     /*
      if (theGameState.playerNumber == 1)
      {
      algorithm = & goalKeeperAlgorithm;
@@ -154,6 +224,34 @@ class NeuralControlImpl : public NeuralControlImplBase
      else{
       algorithm = & attackerAlgorithm;
      }
+    */
+
+     if (theGameState.playerNumber == 1)
+     {
+     algorithm = & goalKeeperAlgorithm;
+     }
+     else{
+
+     int role = getRole(theRobotPose, theTeamData,theFieldBall,theGameState);
+
+     if (role == 2){
+      std::cout << "Attacker"  << std::endl;
+      std::cout << theGameState.playerNumber  << std::endl;
+
+      algorithm = & attackerAlgorithm;
+
+     }
+     else{
+      std::cout << "Defender"  << std::endl;
+      std::cout << theGameState.playerNumber  << std::endl;
+      algorithm = & defenderAlgorithm;
+
+
+     }
+     }
+    std::cout << theGlobalTeammatesModel.teammates.size() << std::endl;
+
+
 
     
      if (algorithm->getCollectNewPolicy()) {
