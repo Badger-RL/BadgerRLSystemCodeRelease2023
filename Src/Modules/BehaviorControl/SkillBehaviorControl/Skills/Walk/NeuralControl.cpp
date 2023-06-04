@@ -6,8 +6,6 @@
  * @author Arne Hasselbring (the actual behavior is older)
  */
 
-
-
 #include <CompiledNN/CompiledNN.h>
 #include <CompiledNN/Model.h>
 #include <CompiledNN/SimpleNN.h>
@@ -43,12 +41,12 @@
 #include <stdio.h>
 #include <iostream>
 
+#include <algorithm>
 
 #define PI 3.14159265
 
 int observation_size = 12;
 int action_size = 3;
-
 
 std::vector<float> obstacleXVector;
 std::vector<float> obstacleYVector;
@@ -126,32 +124,58 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
   }),
 });
 
-
-
+// This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
+double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, double endPointBY, double pointX, double pointY) {
+    const double LINE = pow(sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)), 2);
+    
+    // if the distance of the line is 0, which means it is a point, then return the distance between two points
+    if(LINE == 0.0) {
+        return sqrt(pow((pointX - endPointAX), 2) + pow((pointY - endPointAY), 2));
+    }
+    
+    const double PVX = pointX - endPointAX;
+    const double PVY = pointY - endPointAY;
+    const double WVX = endPointBX - endPointAX;
+    const double WVY = endPointBY - endPointAY;
+    const double T = std::max(0.0, std::min(1.0, (PVX * WVX + PVY * WVY) / LINE));
+    const double PX = endPointAX + T * (endPointBX - endPointAX);
+    const double PY = endPointAY + T * (endPointBY - endPointAY);
+    return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
+}
 
 int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall, GameState theGameState)
 {
-
-
-
-  int higherNumberedPlayers = 0;
-
-  for (auto & teammate : theTeamData.teammates)
-  {
-    if (teammate.number > theGameState.playerNumber){
-    higherNumberedPlayers ++;
+    // Chen: Planning to use two heuristics to test the possibility of dynamic-role-assignment: the distance from the robot to the line segment between our goal and the ball, and the distance to the ball. The former one serve as which robot qualifies the most to take the defender role, the second one is for attacker assignment.
+    // Right now we only uses ball position first.
+    std::vector<double> distances;
+    int count = 0;
+        
+    // Calculate the distance of all robots, as before
+    for(auto & teammate : theTeamData.teammates) {
+        // Exclue the goalkeeper and itself
+        if (teammate.number != 1 && teammate.number != theGameState.playerNumber) {
+            double distanceToBall = getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y()) * 100;
+            distances.push_back(distanceToBall);
+        }
     }
-  }
-
-  
-
-  if (higherNumberedPlayers >= 2 ){
-    return 3;
-  }
-  else{
-    return 2;
-  }
-
+        
+    double ownDistance = getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) * 100;
+        
+    // Count the number of robots that are closer to the ball.
+    for(double num : distances) {
+        // Check if the distance of each robot greater than own
+        if(ownDistance > num) {
+            count++;
+        }
+    }
+        
+    // assign role based on num of robots closer
+    if(count >= 2) {
+        return 3;
+    } else {
+        return 2;
+    }
+    
 // if we are among the two closest robots, we will be an attacker, otherwise, we will be a defender
    
    /*
@@ -210,7 +234,6 @@ class NeuralControlImpl : public NeuralControlImplBase
 
      int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
      
-    
      /*
      if (theGameState.playerNumber == 1)
      {
@@ -226,34 +249,22 @@ class NeuralControlImpl : public NeuralControlImplBase
      }
     */
 
-     if (theGameState.playerNumber == 1)
-     {
-     algorithm = & goalKeeperAlgorithm;
-     }
-     else{
+      if(timestep % 150 == 0) {
+          if(theGameState.playerNumber == 1)
+          {
+              algorithm = & goalKeeperAlgorithm;
+          } else {
+              int role = getRole(theRobotPose, theTeamData, theFieldBall, theGameState);
+              if(role == 2) {
+                  std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
+                  algorithm = & attackerAlgorithm;
+              } else {
+                  std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
+                  algorithm = & defenderAlgorithm;
+              }
+          }
+      }
 
-     int role = getRole(theRobotPose, theTeamData,theFieldBall,theGameState);
-
-     if (role == 2){
-      std::cout << "Attacker"  << std::endl;
-      std::cout << theGameState.playerNumber  << std::endl;
-
-      algorithm = & attackerAlgorithm;
-
-     }
-     else{
-      std::cout << "Defender"  << std::endl;
-      std::cout << theGameState.playerNumber  << std::endl;
-      algorithm = & defenderAlgorithm;
-
-
-     }
-     }
-    std::cout << theGlobalTeammatesModel.teammates.size() << std::endl;
-
-
-
-    
      if (algorithm->getCollectNewPolicy()) {
               algorithm->waitForNewPolicy();
 
