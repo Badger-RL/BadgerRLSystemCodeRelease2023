@@ -156,13 +156,13 @@ int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall
     for(auto & teammate : theTeamData.teammates) {
         // Exclue the goalkeeper and itself
         if (teammate.number != 1 && teammate.number != theGameState.playerNumber) {
-            double distanceToBall = getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y()) * 100;
-            double distanceToBallGoal = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y()) * 100;
+            double distanceToBall = getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y());
+            double distanceToBallGoal = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y());
             distances.push_back(distanceToBallGoal - distanceToBall);
         }
     }
         
-    double ownDistance = (getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y())) * 100;
+    double ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y());
         
     // Count the number of robots that are closer to the ball.
     for(double num : distances) {
