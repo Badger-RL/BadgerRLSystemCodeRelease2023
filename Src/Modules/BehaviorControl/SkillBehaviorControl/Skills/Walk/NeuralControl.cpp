@@ -42,6 +42,7 @@
 #include <iostream>
 
 #include "Representations/Configuration/FieldDimensions.h"
+#include "Platform/Time.h"
 #include <algorithm>
 
 #define PI 3.14159265
@@ -58,9 +59,7 @@ json::object timeData = json::object{};
 //we keep the previousObservation seperately for each robot, using this json object
 json::object prevObservationData = json::object{};
 
-
-
-
+json::object preRole = json::object{};
 
 std::mutex cognitionLock;
 
@@ -90,8 +89,7 @@ Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
-Algorithm * algorithm;
-
+Algorithm * algorithm = NULL;
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
 {,
@@ -145,6 +143,7 @@ double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, do
     return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
 }
 
+// Get the dynamic assigned Role of this Robot.
 int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall, GameState theGameState, FieldDimensions theField)
 {
     // Chen: Planning to use two heuristics to test the possibility of dynamic-role-assignment: the distance from the robot to the line segment between our goal and the ball, and the distance to the ball. The former one serve as which robot qualifies the most to take the defender role, the second one is for attacker assignment.
@@ -251,18 +250,55 @@ class NeuralControlImpl : public NeuralControlImplBase
       algorithm = & attackerAlgorithm;
      }
     */
-
-      if(theGameState.playerNumber == 1)
-      {
-          algorithm = & goalKeeperAlgorithm;
-      } else {
+      
+      // Let there be 3 second interval in between changes of roles
+      if(algorithm == NULL || Time::getCurrentSystemTime() % 3000 < 100) {
           int role = getRole(theRobotPose, theTeamData, theFieldBall, theGameState, theFieldDimensions);
-          if(role == 2) {
+          
+          // Make sure Goal keeper keeps its role and assign new roles
+          if(theGameState.playerNumber == 1) {
+              std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber  << std::endl;
+              algorithm = & goalKeeperAlgorithm;
+              
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 1);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 1;
+              }
+          } else if(role == 2) {
               std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & attackerAlgorithm;
+
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 2);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 2;
+              }
           } else {
               std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & defenderAlgorithm;
+              
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 3);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 3;
+              }
+          }
+      } else {
+          if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+              // Assign role based on previous roles
+              if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+                  algorithm = & goalKeeperAlgorithm;
+              } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+                  algorithm = & attackerAlgorithm;
+              } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+                  algorithm = & defenderAlgorithm;
+              }
+          } else {
+              algorithm = & attackerAlgorithm;
           }
       }
 
