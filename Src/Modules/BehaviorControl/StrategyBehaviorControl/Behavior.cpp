@@ -768,8 +768,8 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     if(actions && !actions->empty() && (static_cast<std::size_t>(agent.setPlayStep) < actions->size() + 1))
     {
       if(!agent.setPlayStep)
-          std::cout << "Hello" << std::endl;
-          std::cout << agent.number << " set play set: " << agent.setPlayStep << std::endl;
+//          std::cout << "Hello" << std::endl;
+//          std::cout << agent.number << " set play set: " << agent.setPlayStep << std::endl;
         return SkillRequest::Builder::walkTo(agent.basePose);
       const SetPlay::Action& action = (*actions)[agent.setPlayStep - 1];
       return setPlayActions[action.type] ? setPlayActions[action.type]->execute(action, agent, otherAgents) : SkillRequest::Builder::empty();
@@ -1013,7 +1013,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
-      std::cout << "can be active minAgent: " << minAgent->number << std::endl;
+//      std::cout << "can be active minAgent: " << minAgent->number << std::endl;
     return minAgent;
   }
   else if(assign && canBeActive(self, self.role == ActiveRole::toRole(ActiveRole::closestToTeammatesBall), false) && theTeammatesBallModel.isValid)
@@ -1054,7 +1054,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
       minAgentWithoutBall->nextRole = ActiveRole::toRole(ActiveRole::closestToTeammatesBall);
     if(minAgentWithBall)
       minAgentWithBall->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
-      std::cout << "minAgentWithBall: " << minAgentWithBall->number<<std::endl;
+//      std::cout << "minAgentWithBall: " << minAgentWithBall->number<<std::endl;
     return minAgentWithBall;
   }
   else
@@ -1079,7 +1079,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
-      std::cout << "minAgent: " << minAgent->number << std::endl;
+//      std::cout << "minAgent: " << minAgent->number << std::endl;
     return minAgent;
   }
 }
