@@ -11,7 +11,7 @@ To setup up this repository, first install the dependencies via apt as listed [h
 
 
 ````
-git clone --recursive https://github.com/Badger-RL/BadgerRLSystem2022.git
+git clone --recursive git@github.com:Badger-RL/BadgerRLSystem2022.git
 
 ````
 
