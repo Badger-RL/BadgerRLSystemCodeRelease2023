@@ -143,6 +143,8 @@ double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, do
     return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
 }
 
+//TODO: Figure out a way how they communicate and then prevent 3 defenders and 3 attackers.
+
 // Get the dynamic assigned Role of this Robot.
 int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall, GameState theGameState, FieldDimensions theField)
 {
