@@ -14,8 +14,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: git submodule update --init --recursive
-    - name: release
-      run: lsb_release -a
+    - name: config1
+      run: sudo mkdir --parents /opt/gcc-root/lib/gcc/x86_64-linux-gnu
+    - name: config2
+      run: sudo ln --symbolic /usr/lib/gcc/x86_64-linux-gnu/11 /opt/gcc-root/lib/gcc/x86_64-linux-gnu/11
+    - name: config3
+      run: sudo ln --symbolic /usr/include /opt/gcc-root/
+    - name: config4
+      run:  echo "CCC_OVERRIDE_OPTIONS=^--gcc-toolchain=/opt/gcc-root" >> $GITHUB_ENV
+    - name: config5
+      run: echo "LLVM_COMPILER=clang" >> $GITHUB_ENV
+    - name: config6
+      run: echo "LLVM_CC_NAM=clang-11" >> $GITHUB_ENV
+    - name: config7
+      run: echo "LLVM_CXX_NAME=clang++-11" >> $GITHUB_ENV
     - name: aptUpdate
       run: sudo apt update
     - name: dependencies

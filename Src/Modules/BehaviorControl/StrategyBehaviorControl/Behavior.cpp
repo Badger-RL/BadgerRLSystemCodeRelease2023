@@ -756,24 +756,26 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     return ballSearch->execute(agent, otherAgents);
   }
 
-  //if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > 8000)
-  //  return ballSearch->execute(agent, otherAgents);
-  /*
-  if(agent.proposedSetPlay != SetPlay::none && agent.setPlayStep >= 0 ) // TODO: if < 0, the agents should still go to their positions... 
+  if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > 8000)
+    return ballSearch->execute(agent, otherAgents);
+
+  if(agent.proposedSetPlay != SetPlay::none && agent.setPlayStep >= 0 )  //TODO: if < 0, the agents should still go to their positions...
   {
     const std::vector<SetPlay::Action>* actions = nullptr;
-    for(const SetPlay::Position& position : setPlays[agent.proposedSetPlay]->positions) // TODO: here proposed, too?
+    for(const SetPlay::Position& position : setPlays[agent.proposedSetPlay]->positions)  // TODO: here proposed, too?
       if(agent.position == Tactic::Position::mirrorIf(position.position, agent.acceptedMirror))
         actions = &position.actions;
     if(actions && !actions->empty() && (static_cast<std::size_t>(agent.setPlayStep) < actions->size() + 1))
     {
       if(!agent.setPlayStep)
+          std::cout << "Hello" << std::endl;
+          std::cout << agent.number << " set play set: " << agent.setPlayStep << std::endl;
         return SkillRequest::Builder::walkTo(agent.basePose);
       const SetPlay::Action& action = (*actions)[agent.setPlayStep - 1];
       return setPlayActions[action.type] ? setPlayActions[action.type]->execute(action, agent, otherAgents) : SkillRequest::Builder::empty();
     }
   }
-  */
+  
 
 
   //std::cout <<  "printing role" << std::endl;
@@ -781,13 +783,18 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
   //std::cout <<  "end print role" << std::endl;
 
   const Vector2f target(0.0,0.0);
+  if(theGameState.isKickIn()){
+//      std::cout << "Not returning Neural Control" << std::endl;
 
+      return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
+  }
+//    std::cout << "Returning Neural Control" << std::endl;
 
   return SkillRequest::Builder::neuralControl(target);
 
 
   //SkillRequest::
-  //return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
+
 }
 
 template<typename SetPlayType>
@@ -1006,6 +1013,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
+      std::cout << "can be active minAgent: " << minAgent->number << std::endl;
     return minAgent;
   }
   else if(assign && canBeActive(self, self.role == ActiveRole::toRole(ActiveRole::closestToTeammatesBall), false) && theTeammatesBallModel.isValid)
@@ -1046,6 +1054,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
       minAgentWithoutBall->nextRole = ActiveRole::toRole(ActiveRole::closestToTeammatesBall);
     if(minAgentWithBall)
       minAgentWithBall->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
+      std::cout << "minAgentWithBall: " << minAgentWithBall->number<<std::endl;
     return minAgentWithBall;
   }
   else
@@ -1070,6 +1079,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
+      std::cout << "minAgent: " << minAgent->number << std::endl;
     return minAgent;
   }
 }

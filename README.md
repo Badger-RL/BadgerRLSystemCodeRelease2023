@@ -11,7 +11,7 @@ To setup up this repository, first install the dependencies via apt as listed [h
 
 
 ````
-git clone --recursive https://github.com/Badger-RL/BadgerRLSystem2022.git
+git clone --recursive git@github.com:Badger-RL/BadgerRLSystem2022.git
 
 ````
 
@@ -47,9 +47,197 @@ and finally, to tell the robots to start the countdown after which the the kicko
 ````
 gc playing
 ````
+## Live Stream Physical Robot Image View
+To live stream physical robot view, first select the build checkbox and deploy the robot with the Develop version and a non-negative magic number. 
+  
+  <img width="228" alt="image" src="https://user-images.githubusercontent.com/60803591/228946695-17b0436b-cc41-4352-ac9a-282511240e25.png"> <img width="203" alt="image" src="https://user-images.githubusercontent.com/60803591/228946805-e3fa2ec5-5091-477a-ae30-000253dece46.png">
+  
+  After deployment, open SimRobot, go to File, and select the RemoteRobot.ros2 scene from 'Config/Scenes'. 
+  
+  Select the corresponding wlan address of the robot, otherwise enter the command sc <Robot Name> <ip address> to connect to the robot remotely using the console. You can find the ip address in the folder Config/Robots/<Robot Name>. An image view should get automatically added to the Scene graph.
+  
+  <img width="133" alt="image" src="https://user-images.githubusercontent.com/60803591/228947589-c4133380-c5d0-4111-998d-eae37056096a.png">
 
 
+## Add Image View in SimRobot(Live Stream SimRobot Perspective)
 
+Image Views allows you to view what robots are seeing using their perception with annotations. It consists of upper and lower view. 
+
+First open SimRobot. After opening SimRobot, go to File and select a scene from 'Config/Scenes'. The following scenes have been tested to work with adding Image View: Game.ros2, OneTeam, and ReplayRobot.ros2.
+
+To Add an Image View, first select the robot(s) where you want to add image views by the following command:
+  
+  To select the robot with the same robot name, type
+  ````
+  robot <robot name>  
+  ````
+  To select all robots, type
+  ````
+  robot all
+  ````
+  To get all robot's name, type
+  ````
+  robot ? 
+  ````
+  
+Then, Type the following command:
+  To add Lower Image view:
+  ````
+  vi image Lower lowerImage
+  vid lowerImage representation:BallPercept:image
+  vid lowerImage representation:LinesPercept:image
+  vid lowerImage representation:ObstaclesImagePercept:image
+  ````
+  To add Upper Image view:
+  ````
+  vi image Upper upperImage
+  vid upperImage representation:BallPercept:image
+  vid upperImage representation:LinesPercept:image
+  vid upperImage representation:ObstaclesImagePercept:image
+  ````
+  
+  Note: Sometimes if you copied and paste all four commands it wouldn't work. Try copying and pasteing commands line by line instead if that's the case.
+
+# Log File Explanation
+  
+The B-Human current release comes with a flexible logging system, which may help with debugging processes. Please check out the previous section to live stream or use the default logger.
+
+If, for some reason, we want to modify the information contained in the log file, we can modify the configuration of loggers.
+
+First, we must travel to "Config/Scenarios" to pick one Scenario. Notably, each Scenario corresponds to different circumstances or roles and has individual logger configurations, respectively. For demonstration, we select the default Scenario. And we can find the "logger.cfg" file in the sub-folder. There are multiple configs that we can modify: "enabled", "path", "numOfBuffers", "sizeOfBuffer", "writePriority", "minFreeDriverSpace", and "representationPerThread".
+  
+````
+// Is logging enabled?
+enabled = true;
+
+// The directory that will contain the log file.
+path = "/home/nao/logging";
+
+// The number of buffers allocated.
+numOfBuffers = 12000;
+
+// The size of each buffer in bytes.
+sizeOfBuffer = 200000;
+
+// The scheduling priority of the writer thread.
+writePriority = -2;
+
+// Logging will stop if less MB are available to the target device.
+minFreeDriveSpace = 100;
+
+// Representations to log per thread
+representationsPerThread = [
+  {
+    thread = Upper;
+    representations = [
+      JPEGImage,
+
+      BallPercept,
+      BallSpots,
+      BodyContour,
+      CameraInfo,
+      CameraMatrix,
+      CirclePercept,
+      FieldBoundary,
+      FrameInfo,
+      ImageCoordinateSystem,
+      LinesPercept,
+      ObstaclesFieldPercept,
+      ObstaclesImagePercept,
+      OdometryData,
+      PenaltyMarkPercept,
+    ];
+  },
+  {
+    thread = Lower;
+    representations = [
+      JPEGImage,
+
+      BallPercept,
+      BallSpots,
+      BodyContour,
+      CameraInfo,
+      CameraMatrix,
+      CirclePercept,
+      FieldBoundary,
+      FrameInfo,
+      ImageCoordinateSystem,
+      LinesPercept,
+      ObstaclesFieldPercept,
+      ObstaclesImagePercept,
+      OdometryData,
+      PenaltyMarkPercept,
+    ];
+  },
+  {
+    thread = Cognition;
+    representations = [
+      ActivationGraph,
+      AlternativeRobotPoseHypothesis,
+      ArmMotionRequest,
+      BallModel,
+      BehaviorStatus,
+      CameraCalibration,
+      GameState,
+      IMUCalibration,
+      MotionRequest,
+      ObstacleModel,
+      OdometryData,
+      RobotHealth,
+      RobotPose,
+      SelfLocalizationHypotheses,
+      SideInformation,
+      SkillRequest,
+      StrategyStatus,
+      TeammatesBallModel,
+      TeamData,
+    ];
+  },
+  {
+    thread = Motion;
+    representations = [
+      FallDownState,
+      FootOffset,
+      FootSoleRotationCalibration,
+      FootSupport,
+      FrameInfo,
+      FsrData,
+      FsrSensorData,
+      GroundContactState,
+      InertialSensorData,
+      InertialData,
+      JointCalibration,
+      JointPlay,
+      JointRequest,
+      JointSensorData,
+      KeyStates,
+      MotionInfo,
+      OdometryData,
+      OdometryDataPreview,
+      SystemSensorData,
+      WalkLearner,
+      WalkStepData,
+    ];
+  },
+  {
+    thread = Audio;
+    representations = [
+      AudioData,
+      FrameInfo,
+      Whistle,
+    ];
+  }
+];
+````
+And supposedly, many representations can be found in "Src/Representations". So theoretically, we can customize data being reported from loggers and thusly extract more critical data such as the TorsoMatrix (Src/Representations/Sensing/TorsoMatrix.cpp) or raw JPEGImage (Src/Representations/Infrastructure/JPEGImage.cpp). The format of log files and the validity of such aforementioned customization shall be further explored.
+
+# Mac compiling for NAO details
+When you are compiling the code to be deployed on the physical NAO robots, you must make a small change Src/Tools/RLConfig.h.
+Navigate to the file and find the line (about line 20):
+
+#define BUILD_MAC_NAO 2 // 1 for NAO, 0 for MAC, 2 for LINUX
+
+When you are compiling for the NAOs on Mac change this flag to be 1. If you are compiling for MAC for SimRobot, change this to be 0, and for all other uses (likely Linux), leave at 2 or change to 2 if it is not. This should then compile with no problems but if it doesn't, reach out to Adam and he will help.
 
 # B-Human Code Release README
 
