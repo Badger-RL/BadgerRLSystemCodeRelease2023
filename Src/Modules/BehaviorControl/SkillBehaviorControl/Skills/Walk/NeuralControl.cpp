@@ -261,7 +261,6 @@ class NeuralControlImpl : public NeuralControlImplBase
           if(theGameState.playerNumber == 1) {
               std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & goalKeeperAlgorithm;
-              theBehaviorStatus.roles = 1;
               
               // store previous role separately for each robot.
               if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -272,7 +271,6 @@ class NeuralControlImpl : public NeuralControlImplBase
           } else if(role == 2) {
               std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & attackerAlgorithm;
-              theBehaviorStatus.roles = 2;
 
               // store previous role separately for each robot.
               if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -283,7 +281,6 @@ class NeuralControlImpl : public NeuralControlImplBase
           } else {
               std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & defenderAlgorithm;
-              theBehaviorStatus.roles = 3;
               
               // store previous role separately for each robot.
               if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -297,17 +294,22 @@ class NeuralControlImpl : public NeuralControlImplBase
               // Assign role based on previous roles
               if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
                   algorithm = & goalKeeperAlgorithm;
-                  theBehaviorStatus.roles = 1;
               } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
                   algorithm = & attackerAlgorithm;
-                  theBehaviorStatus.roles = 2;
               } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
                   algorithm = & defenderAlgorithm;
-                  theBehaviorStatus.roles = 3;
               }
           } else {
               algorithm = & attackerAlgorithm;
           }
+      }
+      
+      if(algorithm == & goalKeeperAlgorithm) {
+          theBehaviorStatus.roles = 1;
+      } else if(algorithm == & defenderAlgorithm) {
+          theBehaviorStatus.roles = 3;
+      } else {
+          theBehaviorStatus.roles = 2;
       }
       
       for(auto & teammate : theTeamData.teammates) {

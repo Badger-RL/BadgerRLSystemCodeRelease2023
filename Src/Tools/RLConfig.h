@@ -11,30 +11,13 @@
 
 #define PATH_MAX 4096
 
-
-
-////////////////////////////////////////// IMPORTANT //////////////////////////////////////////////
-// BEFORE COMPILING, SET BUILD_MAC_NAO TO 1 FOR NAO, 0 FOR MAC, 2 FOR ALL ELSE (LINUX)
-
-#define BUILD_MAC_NAO 2 // 1 for NAO, 0 for MAC
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-// If both BUILD_MAC_FLAG and BUILD_NAO_FLAG are defined, BUILD_NAO_FLAG takes precedence
-// 0 for MAC, 1 for NAO, 2 for LINUX
-#if BUILD_MAC_NAO == 1 // NAO
-#define BUILD_NAO_FLAG
-#endif
-
-#if BUILD_MAC_NAO == 0 // MAC
+#ifdef BUILD_MAC_FLAG
 #include <mach-o/dyld.h>
 #endif
 
-#ifndef BUILD_MAC_FLAG // LINUX
+#ifndef BUILD_MAC_FLAG
 #include <linux/limits.h>
-#endif 
+#endif
 #include <mutex>
 
 #define PATH_MAX 4096
@@ -42,8 +25,7 @@
 //derived from https://stackoverflow.com/questions/23943239/how-to-get-path-to-current-exe-file-on-linux
 static std::string getConfigDirectory()
 {
-// Linux or NAO
-#if !defined(BUILD_MAC_FLAG) || defined(BUILD_NAO_FLAG)
+#ifndef BUILD_MAC_FLAG
   char result[PATH_MAX];
   ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
   const char *path;
@@ -61,22 +43,22 @@ static std::string getConfigDirectory()
   #endif
 #endif
   
-#if defined(BUILD_MAC_FLAG) && !defined(BUILD_NAO_FLAG)
+#ifdef BUILD_MAC_FLAG
     char buf [PATH_MAX];
     uint32_t bufsize = PATH_MAX;
     if(!_NSGetExecutablePath(buf, &bufsize))
       puts(buf);
-
+  
     std::string output_temp(buf);
-
+  
     std::string output(output_temp);
-
+  
     for (int i = output_temp.length(); i >= 0; i--) {
       if (output[i] == '/')
         break;
       output.erase(i);
     }
-
+    
     #ifndef BUILD_NAO_FLAG
     output = output + "../../../../../../../Config/rl_config.json";
     #endif
