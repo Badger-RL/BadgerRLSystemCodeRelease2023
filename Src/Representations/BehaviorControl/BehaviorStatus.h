@@ -20,7 +20,6 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanCompressedMessageParticle<Behavior
   ENUM(Activity,
   {,
     unknown,
-
     calibrationFinished,
   }),
 
@@ -31,4 +30,5 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanCompressedMessageParticle<Behavior
   (float) speed, /**< The absolute speed in mm/s. */
   (Vector2f)(Vector2f::Zero()) shootingTo, /**< The target position the robot is kicking the ball to (in robot relative coordinates). */
 
+    (int) roles,
 });

@@ -415,6 +415,7 @@ bool TeamMessageHandler::whistleDetected() const
 bool TeamMessageHandler::behaviorStatusChanged() const
 {
   return (theBehaviorStatus.activity != lastSent.theBehaviorStatus.activity ||
+          theBehaviorStatus.roles != lastSent.theBehaviorStatus.roles ||
           theBehaviorStatus.passTarget != lastSent.theBehaviorStatus.passTarget ||
           // theBehaviorStatus.walkingTo != lastSent.behaviorStatus.walkingTo || // included in robotPoseChanged
           // theBehaviorStatus.speed != lastSent.behaviorStatus.speed || // included in robotPoseChanged
