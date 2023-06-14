@@ -252,6 +252,8 @@ class NeuralControlImpl : public NeuralControlImplBase
       algorithm = & attackerAlgorithm;
      }
     */
+      int defenderCount = 0;
+      int attackerCount = 0;
       
       // Let there be 3 second interval in between changes of roles
       if(algorithm == NULL || Time::getCurrentSystemTime() % 3000 < 100) {
@@ -259,7 +261,7 @@ class NeuralControlImpl : public NeuralControlImplBase
           
           // Make sure Goal keeper keeps its role and assign new roles
           if(theGameState.playerNumber == 1) {
-              std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber  << std::endl;
+              //std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & goalKeeperAlgorithm;
               
               // store previous role separately for each robot.
@@ -269,7 +271,7 @@ class NeuralControlImpl : public NeuralControlImplBase
                   preRole[std::to_string(theGameState.playerNumber)] = 1;
               }
           } else if(role == 2) {
-              std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
+              //std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & attackerAlgorithm;
 
               // store previous role separately for each robot.
@@ -279,7 +281,7 @@ class NeuralControlImpl : public NeuralControlImplBase
                   preRole[std::to_string(theGameState.playerNumber)] = 2;
               }
           } else {
-              std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
+              //std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
               algorithm = & defenderAlgorithm;
               
               // store previous role separately for each robot.
@@ -289,32 +291,71 @@ class NeuralControlImpl : public NeuralControlImplBase
                   preRole[std::to_string(theGameState.playerNumber)] = 3;
               }
           }
-      } else {
-          if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-              // Assign role based on previous roles
-              if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
-                  algorithm = & goalKeeperAlgorithm;
-              } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
-                  algorithm = & attackerAlgorithm;
-              } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
-                  algorithm = & defenderAlgorithm;
-              }
-          } else {
-              algorithm = & attackerAlgorithm;
-          }
       }
+      
+      if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+          // Assign role based on previous roles
+          if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+              algorithm = & goalKeeperAlgorithm;
+          } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+              algorithm = & attackerAlgorithm;
+          } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+              algorithm = & defenderAlgorithm;
+          }
+      } else {
+          algorithm = & attackerAlgorithm;
+      }
+      
+      /*
       
       if(algorithm == & goalKeeperAlgorithm) {
           theBehaviorStatus.roles = 1;
       } else if(algorithm == & defenderAlgorithm) {
           theBehaviorStatus.roles = 3;
+          defenderCount++;
       } else {
           theBehaviorStatus.roles = 2;
+          attackerCount++;
       }
       
       for(auto & teammate : theTeamData.teammates) {
-          std::cout << "theRole of " << teammate.number << " is " << teammate.theBehaviorStatus.roles << std::endl;
+          if(teammate.number != theGameState.playerNumber) {
+              if(teammate.theBehaviorStatus.roles == 3) {
+                  defenderCount++;
+              } else if(teammate.theBehaviorStatus.roles == 2) {
+                  attackerCount++;
+              }
+          }
       }
+      if(attackerCount >= 3 && algorithm == & attackerAlgorithm) {
+          algorithm = & defenderAlgorithm;
+          theBehaviorStatus.roles = 3;
+          
+          if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+              preRole.insert(std::to_string(theGameState.playerNumber), 3);
+          } else {
+              preRole[std::to_string(theGameState.playerNumber)] = 3;
+          }
+      } else if ((defenderCount >= 3 && algorithm == & defenderAlgorithm) || attackerCount == 0) {
+          algorithm = & attackerAlgorithm;
+          theBehaviorStatus.roles = 2;
+          
+          if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+              preRole.insert(std::to_string(theGameState.playerNumber), 2);
+          } else {
+              preRole[std::to_string(theGameState.playerNumber)] = 2;
+          }
+      } */
+      
+      if(algorithm == & goalKeeperAlgorithm) {
+          std::cout << "Robot " << theGameState.playerNumber << " is a Goalkeeper!" << std::endl;
+      } else if (algorithm == & attackerAlgorithm) {
+          std::cout << "Robot " << theGameState.playerNumber << " is an Attakcer!" << std::endl;
+      } else if (algorithm == & defenderAlgorithm) {
+          std::cout << "Robot " << theGameState.playerNumber << " is a Defender!" << std::endl;
+      }
+      
+      
 
      if (algorithm->getCollectNewPolicy()) {
               algorithm->waitForNewPolicy();
