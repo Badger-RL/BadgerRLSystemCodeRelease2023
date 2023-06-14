@@ -37,6 +37,10 @@
 #include "Representations/Sensing/FootBumperState.h"
 #include "Representations/Communication/TeamData.h"
 
+#include "Tools/Modeling/Obstacle.h"
+#include "Debugging/DebugDrawings.h"
+#include "Libs/Debugging/ColorRGBA.h"
+
 #include "Debugging/DebugDrawings.h"
 #include "Debugging/DebugDrawings3D.h"
 
@@ -158,8 +162,9 @@ public:
     virtual bool onSegment(Vector2f p, Vector2f q, Vector2f r);
     virtual int orientation(Vector2f p, Vector2f q, Vector2f r);
     virtual bool doIntersect(Vector2f p1, Vector2f q1, Vector2f p2, Vector2f q2);
-    virtual bool preCollision(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector, float predictedPosX, float predictedPosY);
+    virtual bool preCollision(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector, float predictedPosX, float predictedPosY, bool obstacle[]);
     virtual void addObstaclesSimRobot(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector);
+    virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
     option(NeuralControl)
     {
         
@@ -271,6 +276,7 @@ public:
         bool shield = false;
         bool moveRight = false;
         bool moveLeft = false;
+        bool obstacles[8] = {false, false, false, false,false, false, false,false};
         if (RLConfig::shieldEnabled)
         {
             
@@ -291,37 +297,42 @@ public:
             std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
             std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
             std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
+            std::cout << "Angle of Robot: " << theRobotPose.rotation << std::endl;
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
                         addObstaclesSimRobot(obstacleXVector1, obstacleYVector1);
-                        robotPreCollision = preCollision(obstacleXVector1, obstacleYVector1, predictedPosition[0], predictedPosition[1]);
+                        robotPreCollision = preCollision(obstacleXVector1, obstacleYVector1, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 2:
                         addObstaclesSimRobot(obstacleXVector2, obstacleYVector2);
-                        robotPreCollision = preCollision(obstacleXVector2, obstacleYVector2, predictedPosition[0], predictedPosition[1]);
+                        robotPreCollision = preCollision(obstacleXVector2, obstacleYVector2, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 3:
                         addObstaclesSimRobot(obstacleXVector3, obstacleYVector3);
-                        robotPreCollision = preCollision(obstacleXVector3, obstacleYVector3, predictedPosition[0], predictedPosition[1]);
+                        robotPreCollision = preCollision(obstacleXVector3, obstacleYVector3, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 4:
                         addObstaclesSimRobot(obstacleXVector4, obstacleYVector4);
                         for(unsigned int i = 0; i < obstacleXVector4.size(); i++){
                             std::cout << "Robot 4 Perceived Obstacle Position: " << obstacleXVector4[i] << ", " <<obstacleYVector4[i] << std::endl;
                         }
-                        robotPreCollision = preCollision(obstacleXVector4, obstacleYVector4, predictedPosition[0], predictedPosition[1]);
+                        robotPreCollision = preCollision(obstacleXVector4, obstacleYVector4, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 5:
                         addObstaclesSimRobot(obstacleXVector5, obstacleYVector5);
-                        robotPreCollision = preCollision(obstacleXVector5, obstacleYVector5, predictedPosition[0], predictedPosition[1]);
+                        robotPreCollision = preCollision(obstacleXVector5, obstacleYVector5, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                 }
+                for(int i = 0; i < 8; i++){
+                    std::cout << "obstacle region " << i+1 <<  ": " << obstacles[i] << std::endl;
+                }
+
 
             }
             else{
                 addObstaclesSimRobot(obstacleXVector, obstacleYVector);
-                robotPreCollision = preCollision(obstacleXVector, obstacleYVector, predictedPosition[0], predictedPosition[1]);
+                robotPreCollision = preCollision(obstacleXVector, obstacleYVector, predictedPosition[0], predictedPosition[1], obstacles);
                 std::cout << obstacleXVector.size() << std::endl;
             }
             
@@ -383,9 +394,13 @@ public:
         }
         else if(robotPreCollision){
             std::cout << "Collision Avoidance activated" << std::endl;
-            theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                0.0f,
-                1000.0f}});
+            std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+            double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+            std::cout << "Angle to go: " << angle * 180/PI << std::endl;
+            float x = 1000.f * cos(angle);
+            float y = 1000.f * sin(angle);
+            std::cout << "x: " << x << ", y: " << y << std::endl;
+            theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
         }
         else{
@@ -483,7 +498,7 @@ bool NeuralControlImpl::doIntersect(Vector2f p1, Vector2f q1, Vector2f p2, Vecto
     
     return false; // Doesn't fall in any of the above cases
 }
-bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<float>& ObstacleY, float predictedPosX, float predictedPosY){
+bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<float>& ObstacleY, float predictedPosX, float predictedPosY, bool obstacles[8]){
     bool intersect = false;
     bool withInRobotSquare = false;
     for(unsigned int i = 0; i < ObstacleX.size(); i ++){
@@ -492,9 +507,22 @@ bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<
           Vector2f str(ObstacleX[i] + 250.f, ObstacleY[i] - 250.f);
           Vector2f sbr(ObstacleX[i] - 250.f, ObstacleY[i] - 250.f);
         Vector2f PredictedPoseVector(predictedPosX, predictedPosY);
+        Vector2f obstaclePose(ObstacleX[i], ObstacleY[i]);
+
         std::cout << (theRobotPose.translation - PredictedPoseVector).norm() << std::endl;
         std::cout << "Obstacle Position in global coordinates: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
         bool intersect = (doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, stl) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, sbr) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbr, str) || doIntersect(theRobotPose.translation, PredictedPoseVector, stl, str));
+        double angleRelativeToRobot = atan2( ObstacleY[i] - theRobotPose.translation.y(), ObstacleX[i] - theRobotPose.translation.x());
+        if(angleRelativeToRobot<0){
+            angleRelativeToRobot += 2*PI;
+        }
+        std::cout << "Angle in degree: " << angleRelativeToRobot * 180 / PI << std::endl;
+        if((theRobotPose.translation - obstaclePose).norm() < 500.f){
+            std::cout << "Obstacle within distance: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
+            obstacles[(int)(angleRelativeToRobot / (PI/4))] = true;
+        }
+           
+        
         
         withInRobotSquare = theRobotPose.translation.x() <= stl.x() && theRobotPose.translation.x() >= sbl.x() && theRobotPose.translation.y() <= stl.y() && theRobotPose.translation.y() >= str.y();
         if(intersect || withInRobotSquare ){
@@ -512,8 +540,10 @@ bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<float>& ObstacleX, std::vector<float>& ObstacleY){
     for (auto & obstacle : theObstacleModel.obstacles)
     {
+        if(!obstacle.isTeammate()){
             ObstacleX.push_back(obstacle.center.x() + theRobotPose.translation.x());
             ObstacleY.push_back(obstacle.center.y() + theRobotPose.translation.y());
+        }
         
     }
     for(auto& teammate: theTeamData.teammates){
@@ -523,6 +553,59 @@ void NeuralControlImpl::addObstaclesSimRobot(std::vector<float>& ObstacleX, std:
         ObstacleY.push_back(teammate.theRobotPose.translation.y());
     }
 }
+
+// Calculate longest sub array with all 1's index
+std::pair<int, int> NeuralControlImpl::startIndexOfLongestConsecutive0s(const bool data[], int length) {
+    int startIndex{}, counter{}, previousValue{},maxCounter{}, startIndexMax{}, endIndex{}, endIndexMax{};
+        std::pair<int, int> result;
+    // Go through all elements of the array
+    for (int i{}; i < length; ++i) {
+
+        // Get the current element. Special Handling for last element
+        const bool value = data[i];
+            std::cout << value << std::endl;
+        // If we see a 1, then we are in a open sliding window
+        if (value == false) {
+
+            // If the window was just opened, then remember the start index
+            if (previousValue == true) startIndex = i;
+                        if(data[i+1] == true || data[i] == false){ endIndex = i;}
+            // Count the number of 1's in the open window. This will be the width at the end
+            ++counter;
+        }
+        else {
+            // If the last window size is bigger than whatever we had before
+            // Now, the value is 0. So the window is closed.
+            if ((previousValue == false) && (counter > maxCounter)) {
+                // Store new max window size and new start index for max.                endIndex =
+                maxCounter = counter;
+                startIndexMax = startIndex;
+                                endIndexMax = endIndex;
+            }
+            // Optimization: If the maximum size of a found window is bigger
+            // than the rest of the remaining value, we can stop all activities
+            if (maxCounter >= length / 2) break;
+
+            // Counter is 0 again
+            counter = 0;
+        }
+        previousValue = value;
+
+
+    }
+                    // Now, the value is 0. So the window is closed.
+    if ((data[length-1] == false) && (counter > maxCounter)) {
+                // Store new max window size and new start index for max.                endIndex =
+      maxCounter = counter;
+      startIndexMax = startIndex;
+            endIndexMax = endIndex;
+    }
+
+            result.first = startIndexMax;
+        result.second = endIndexMax;
+    return result;
+}
+
 
 
 
