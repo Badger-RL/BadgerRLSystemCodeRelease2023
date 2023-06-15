@@ -194,8 +194,6 @@ class NeuralControlImpl : public NeuralControlImplBase
           role = 2;
       }
       
-      
-      
       // Let there be 3 second interval in between changes of roles
       if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
           // Make sure Goal keeper keeps its role and assign new roles
