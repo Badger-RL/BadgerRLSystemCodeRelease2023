@@ -30,5 +30,5 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanCompressedMessageParticle<Behavior
   (float) speed, /**< The absolute speed in mm/s. */
   (Vector2f)(Vector2f::Zero()) shootingTo, /**< The target position the robot is kicking the ball to (in robot relative coordinates). */
 
-    (int) roles,
+  (float) distance, /**< The distance between the robot to the line between ball / goal - the distance between the robot to the ball */
 });

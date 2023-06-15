@@ -3,7 +3,7 @@
  *
  * This file implements an implementation for the NeuralControl skill.
  *
- * @author Arne Hasselbring (the actual behavior is older)
+ * @author Arne Hasselbring (the actual behavior is older), John Balis, Chen Li
  */
 
 #include <CompiledNN/CompiledNN.h>
@@ -59,7 +59,7 @@ json::object timeData = json::object{};
 //we keep the previousObservation seperately for each robot, using this json object
 json::object prevObservationData = json::object{};
 
-json::object preRole = json::object{};
+json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
 
 std::mutex cognitionLock;
 
@@ -89,7 +89,9 @@ Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
-Algorithm * algorithm = NULL;
+Algorithm * algorithm = NULL; // This is the current Algorithm.
+const int DECISION_INTERVAL = 15; // decision interval in seconds
+const int DECISION_TIME = 15; // the time used for decision making in time steps
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
 {,
@@ -126,7 +128,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 // This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
 double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, double endPointBY, double pointX, double pointY) {
-    const double LINE = pow(sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)), 2);
+    const double LINE = pow(sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)), 2); // the representation of the line segment
     
     // if the distance of the line is 0, which means it is a point, then return the distance between two points
     if(LINE == 0.0) {
@@ -143,85 +145,13 @@ double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, do
     return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
 }
 
-//TODO: Figure out a way how they communicate and then prevent 3 defenders and 3 attackers.
-
 // Get the dynamic assigned Role of this Robot.
-int getRole(RobotPose theRobotPose, TeamData theTeamData, FieldBall theFieldBall, GameState theGameState, FieldDimensions theField)
+float getOwnDistance(RobotPose theRobotPose, FieldBall theFieldBall, FieldDimensions theField)
 {
-    // Chen: Planning to use two heuristics to test the possibility of dynamic-role-assignment: the distance from the robot to the line segment between our goal and the ball, and the distance to the ball. The former one serve as which robot qualifies the most to take the defender role, the second one is for attacker assignment.
-    // Right now we only uses ball position first.
-    std::vector<double> distances;
-    int count = 0;
-        
-    // Calculate the distance of all robots, as before
-    for(auto & teammate : theTeamData.teammates) {
-        // Exclue the goalkeeper and itself
-        if (teammate.number != 1 && teammate.number != theGameState.playerNumber) {
-            double distanceToBall = getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y());
-            double distanceToBallGoal = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y());
-            distances.push_back(distanceToBallGoal - distanceToBall);
-        }
-    }
-        
-    double ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y());
-        
-    // Count the number of robots that are closer to the ball.
-    for(double num : distances) {
-        // Check if the distance of each robot greater than own
-        if(ownDistance < num) {
-            count++;
-        }
-    }
-        
-    // assign role based on num of robots closer
-    if(count >= 2) {
-        return 3;
-    } else {
-        return 2;
-    }
+    float ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()); // the distance between the robot to the line segment connect the ball and our goal - the distance between the robot to the ball.
     
-// if we are among the two closest robots, we will be an attacker, otherwise, we will be a defender
-   
-   /*
-    std::vector<float> distances;
-
-
-    std::cout << theTeamData.teammates.size() << std::endl;
-    //assert (theTeamData.teammates.size() == 4);
-    for (auto & teammate : theTeamData.teammates)
-    {
-      if (teammate.number != 1 && teammate.number != theGameState.playerNumber)
-      {
-        float distance = sqrt(pow(teammate.theRobotPose.translation.x() - theFieldBall.positionOnField.x(),2) + pow(teammate.theRobotPose.translation.y() - theFieldBall.positionOnField.y(), 2));
-        distances.push_back(distance);
-
-      }
-    }
-
-    float ownDistance = sqrt(pow(theRobotPose.translation.x() - theFieldBall.positionOnField.x(),2) + pow(theRobotPose.translation.y()- theFieldBall.positionOnField.y(), 2));
-
-
-    int numCloser = 0;
-
-    for (float distance : distances)
-    {
-      if (ownDistance < distance){
-        numCloser++; 
-      }
-    }
-
-    if (numCloser >=2){
-      return 2;
-    }
-    else{
-      return 3;
-    }
-
-*/
-
-
+    return ownDistance;
 }
-
 
 
 class NeuralControlImpl : public NeuralControlImplBase
@@ -236,32 +166,41 @@ class NeuralControlImpl : public NeuralControlImplBase
         timeData.insert(std::to_string(theGameState.playerNumber), 0);
      }
 
-     int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
+      int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
      
-     /*
-     if (theGameState.playerNumber == 1)
-     {
-     algorithm = & goalKeeperAlgorithm;
-     }
-     else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
-     {
-      algorithm = & defenderAlgorithm;
-
-     }
-     else{
-      algorithm = & attackerAlgorithm;
-     }
-    */
-      int defenderCount = 0;
-      int attackerCount = 0;
+    
+      int role; // the role our robot takes
+      int count = 0; // the count of other robots have a greater measure
+      theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
+      float ownDistance = theBehaviorStatus.distance; // our own distance
+      
+      // Iterate through all teammates and find out their distance measure
+      for(auto & teammate : theTeamData.teammates) {
+          // Exclude the goal keeper and ourselves
+          if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
+              float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+              
+              // if the teammate has a greater distance, update the count
+              if(ownDistance < distance) {
+                  count++;
+              }
+          }
+      }
+      
+      // assign role based on num of robots closer
+      if(count >= 2) {
+          role = 3;
+      } else {
+          role = 2;
+      }
+      
+      
       
       // Let there be 3 second interval in between changes of roles
-      if(algorithm == NULL || Time::getCurrentSystemTime() % 3000 < 100) {
-          int role = getRole(theRobotPose, theTeamData, theFieldBall, theGameState, theFieldDimensions);
-          
+      if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
           // Make sure Goal keeper keeps its role and assign new roles
           if(theGameState.playerNumber == 1) {
-              //std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber  << std::endl;
+              std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
               algorithm = & goalKeeperAlgorithm;
               
               // store previous role separately for each robot.
@@ -271,7 +210,7 @@ class NeuralControlImpl : public NeuralControlImplBase
                   preRole[std::to_string(theGameState.playerNumber)] = 1;
               }
           } else if(role == 2) {
-              //std::cout << "Attacker: Robot - " << theGameState.playerNumber  << std::endl;
+              std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
               algorithm = & attackerAlgorithm;
 
               // store previous role separately for each robot.
@@ -281,7 +220,7 @@ class NeuralControlImpl : public NeuralControlImplBase
                   preRole[std::to_string(theGameState.playerNumber)] = 2;
               }
           } else {
-              //std::cout << "Defender: Robot - " << theGameState.playerNumber  << std::endl;
+              std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
               algorithm = & defenderAlgorithm;
               
               // store previous role separately for each robot.
@@ -293,6 +232,7 @@ class NeuralControlImpl : public NeuralControlImplBase
           }
       }
       
+      // Make sure everything is updated every time step, default is attacker
       if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
           // Assign role based on previous roles
           if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
@@ -346,14 +286,6 @@ class NeuralControlImpl : public NeuralControlImplBase
               preRole[std::to_string(theGameState.playerNumber)] = 2;
           }
       } */
-      
-      if(algorithm == & goalKeeperAlgorithm) {
-          std::cout << "Robot " << theGameState.playerNumber << " is a Goalkeeper!" << std::endl;
-      } else if (algorithm == & attackerAlgorithm) {
-          std::cout << "Robot " << theGameState.playerNumber << " is an Attakcer!" << std::endl;
-      } else if (algorithm == & defenderAlgorithm) {
-          std::cout << "Robot " << theGameState.playerNumber << " is a Defender!" << std::endl;
-      }
       
       
 
