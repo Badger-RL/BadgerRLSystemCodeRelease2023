@@ -3,10 +3,8 @@
  *
  * This file implements an implementation for the NeuralControl skill.
  *
- * @author Arne Hasselbring (the actual behavior is older)
+ * @author Arne Hasselbring (the actual behavior is older), John Balis, Chen Li
  */
-
-
 
 #include <CompiledNN/CompiledNN.h>
 #include <CompiledNN/Model.h>
@@ -24,6 +22,7 @@
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
 #include "Representations/BehaviorControl/Skills.h"
+#include "Representations/Communication/TeamData.h"
 #include "Representations/BehaviorControl/StrategyStatus.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/BehaviorControl/FieldBall.h"
@@ -51,12 +50,14 @@
 #include <stdio.h>
 #include <iostream>
 
+#include "Representations/Configuration/FieldDimensions.h"
+#include "Platform/Time.h"
+#include <algorithm>
 
 #define PI 3.14159265
 
 int observation_size = 12;
 int action_size = 3;
-
 
 std::vector<float> obstacleXVector;
 std::vector<float> obstacleYVector;
@@ -85,9 +86,13 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
+<<<<<<< HEAD
 bool isSimRobot = true;
 bool robotPreCollision = false;
 
+=======
+json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
+>>>>>>> dev-dynamic-roles
 
 std::mutex cognitionLock;
 
@@ -117,10 +122,12 @@ Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
-Algorithm * algorithm;
-
+Algorithm * algorithm = NULL; // This is the current Algorithm.
+const int DECISION_INTERVAL = 15; // decision interval in seconds
+const int DECISION_TIME = 15; // the time used for decision making in time steps
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
+<<<<<<< HEAD
                      {,
     IMPLEMENTS(NeuralControl),
     REQUIRES(ArmContactModel),
@@ -151,13 +158,71 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
                            (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
                            (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
                        }),
+=======
+{,
+  IMPLEMENTS(NeuralControl),
+  REQUIRES(ArmContactModel),
+  REQUIRES(FootBumperState),
+  REQUIRES(FrameInfo),
+  REQUIRES(GameState),
+  REQUIRES(LibWalk),
+  REQUIRES(MotionInfo),
+  REQUIRES(PathPlanner),
+  REQUIRES(FieldBall),
+  REQUIRES(RobotPose),
+  REQUIRES(ObstacleModel),
+  REQUIRES(TeamData),
+  REQUIRES(GlobalTeammatesModel),
+  REQUIRES(StrategyStatus),
+  REQUIRES(WalkingEngineOutput),
+  REQUIRES(FieldDimensions),
+  MODIFIES(BehaviorStatus),
+  CALLS(LookForward),
+  CALLS(Stand),
+  CALLS(PublishMotion),
+  CALLS(WalkAtRelativeSpeed),
+  CALLS(WalkToPose),
+  CALLS(WalkToBallAndKick),
+  DEFINES_PARAMETERS(
+  {,
+    (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
+    (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
+    (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
+  }),
+>>>>>>> dev-dynamic-roles
 });
 
+// This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
+double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, double endPointBY, double pointX, double pointY) {
+    const double LINE = pow(sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)), 2); // the representation of the line segment
+    
+    // if the distance of the line is 0, which means it is a point, then return the distance between two points
+    if(LINE == 0.0) {
+        return sqrt(pow((pointX - endPointAX), 2) + pow((pointY - endPointAY), 2));
+    }
+    
+    const double PVX = pointX - endPointAX;
+    const double PVY = pointY - endPointAY;
+    const double WVX = endPointBX - endPointAX;
+    const double WVY = endPointBY - endPointAY;
+    const double T = std::max(0.0, std::min(1.0, (PVX * WVX + PVY * WVY) / LINE));
+    const double PX = endPointAX + T * (endPointBX - endPointAX);
+    const double PY = endPointAY + T * (endPointBY - endPointAY);
+    return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
+}
 
+// Get the dynamic assigned Role of this Robot.
+float getOwnDistance(RobotPose theRobotPose, FieldBall theFieldBall, FieldDimensions theField)
+{
+    float ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()); // the distance between the robot to the line segment connect the ball and our goal - the distance between the robot to the ball.
+    
+    return ownDistance;
+}
 
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
+<<<<<<< HEAD
 public:
     virtual bool onSegment(Vector2f p, Vector2f q, Vector2f r);
     virtual int orientation(Vector2f p, Vector2f q, Vector2f r);
@@ -167,6 +232,152 @@ public:
     virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
     option(NeuralControl)
     {
+=======
+  option(NeuralControl)
+  {
+
+     cognitionLock.lock();
+
+     if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
+     {
+        timeData.insert(std::to_string(theGameState.playerNumber), 0);
+     }
+
+      int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
+     
+    
+      int role; // the role our robot takes
+      int count = 0; // the count of other robots have a greater measure
+      theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
+      float ownDistance = theBehaviorStatus.distance; // our own distance
+      
+      // Iterate through all teammates and find out their distance measure
+      for(auto & teammate : theTeamData.teammates) {
+          // Exclude the goal keeper and ourselves
+          if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
+              float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+              
+              // if the teammate has a greater distance, update the count
+              if(ownDistance < distance) {
+                  count++;
+              }
+          }
+      }
+      
+      // assign role based on num of robots closer
+      if(count >= 2) {
+          role = 3;
+      } else {
+          role = 2;
+      }
+      
+      // Let there be 3 second interval in between changes of roles
+      if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
+          // Make sure Goal keeper keeps its role and assign new roles
+          if(theGameState.playerNumber == 1) {
+              std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
+              algorithm = & goalKeeperAlgorithm;
+              
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 1);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 1;
+              }
+          } else if(role == 2) {
+              std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
+              algorithm = & attackerAlgorithm;
+
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 2);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 2;
+              }
+          } else {
+              std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
+              algorithm = & defenderAlgorithm;
+              
+              // store previous role separately for each robot.
+              if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                  preRole.insert(std::to_string(theGameState.playerNumber), 3);
+              } else {
+                  preRole[std::to_string(theGameState.playerNumber)] = 3;
+              }
+          }
+      }
+      
+      // Make sure everything is updated every time step, default is attacker
+      if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+          // Assign role based on previous roles
+          if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+              algorithm = & goalKeeperAlgorithm;
+          } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+              algorithm = & attackerAlgorithm;
+          } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+              algorithm = & defenderAlgorithm;
+          }
+      } else {
+          algorithm = & attackerAlgorithm;
+      }
+      
+      /*
+      
+      if(algorithm == & goalKeeperAlgorithm) {
+          theBehaviorStatus.roles = 1;
+      } else if(algorithm == & defenderAlgorithm) {
+          theBehaviorStatus.roles = 3;
+          defenderCount++;
+      } else {
+          theBehaviorStatus.roles = 2;
+          attackerCount++;
+      }
+      
+      for(auto & teammate : theTeamData.teammates) {
+          if(teammate.number != theGameState.playerNumber) {
+              if(teammate.theBehaviorStatus.roles == 3) {
+                  defenderCount++;
+              } else if(teammate.theBehaviorStatus.roles == 2) {
+                  attackerCount++;
+              }
+          }
+      }
+      if(attackerCount >= 3 && algorithm == & attackerAlgorithm) {
+          algorithm = & defenderAlgorithm;
+          theBehaviorStatus.roles = 3;
+          
+          if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+              preRole.insert(std::to_string(theGameState.playerNumber), 3);
+          } else {
+              preRole[std::to_string(theGameState.playerNumber)] = 3;
+          }
+      } else if ((defenderCount >= 3 && algorithm == & defenderAlgorithm) || attackerCount == 0) {
+          algorithm = & attackerAlgorithm;
+          theBehaviorStatus.roles = 2;
+          
+          if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+              preRole.insert(std::to_string(theGameState.playerNumber), 2);
+          } else {
+              preRole[std::to_string(theGameState.playerNumber)] = 2;
+          }
+      } */
+      
+      
+
+     if (algorithm->getCollectNewPolicy()) {
+              algorithm->waitForNewPolicy();
+
+              algorithm->deleteModels();
+              algorithm->updateModels();
+
+              if (RLConfig::train_mode) {
+                algorithm->deletePolicyFiles();
+              }
+
+              algorithm->setCollectNewPolicy(false);
+    }
+      
+>>>>>>> dev-dynamic-roles
         
         
         cognitionLock.lock();

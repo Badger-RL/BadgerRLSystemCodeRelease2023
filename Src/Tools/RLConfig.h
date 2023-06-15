@@ -34,7 +34,7 @@
 
 #ifndef BUILD_MAC_FLAG // LINUX
 #include <linux/limits.h>
-#endif 
+#endif
 #include <mutex>
 
 #define PATH_MAX 4096

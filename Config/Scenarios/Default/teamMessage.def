@@ -44,6 +44,8 @@ BehaviorStatus
   walkingTo: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
   speed: Float(min=-500.0, max=500.0, bits=16)
   shootingTo: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
+  
+  distance: Float
 }
 
 StrategyStatus
