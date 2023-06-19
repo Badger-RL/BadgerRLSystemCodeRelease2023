@@ -340,44 +340,6 @@ public:
               algorithm->setCollectNewPolicy(false);
     }
       
-        
-        
-        cognitionLock.lock();
-        
-        if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
-        {
-            timeData.insert(std::to_string(theGameState.playerNumber), 0);
-        }
-        
-        
-        
-        if (theGameState.playerNumber == 1)
-        {
-            algorithm = & goalKeeperAlgorithm;
-        }
-        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
-        {
-            algorithm = & defenderAlgorithm;
-            
-        }
-        else{
-            algorithm = & attackerAlgorithm;
-        }
-        
-        
-        if (algorithm->getCollectNewPolicy()) {
-            algorithm->waitForNewPolicy();
-            
-            algorithm->deleteModels();
-            algorithm->updateModels();
-            
-            if (RLConfig::train_mode) {
-                algorithm->deletePolicyFiles();
-            }
-            
-            algorithm->setCollectNewPolicy(false);
-        }
-        
 
         
         const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
