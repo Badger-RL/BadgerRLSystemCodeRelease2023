@@ -86,7 +86,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = true;
+bool isSimRobot = false;
 bool robotPreCollision = false;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
@@ -125,7 +125,9 @@ const int DECISION_TIME = 15; // the time used for decision making in time steps
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
 
-                     {,
+
+{,
+
   IMPLEMENTS(NeuralControl),
   REQUIRES(ArmContactModel),
   REQUIRES(FootBumperState),
@@ -338,6 +340,45 @@ public:
               algorithm->setCollectNewPolicy(false);
     }
       
+        
+        
+        cognitionLock.lock();
+        
+        if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
+        {
+            timeData.insert(std::to_string(theGameState.playerNumber), 0);
+        }
+        
+        
+        
+        if (theGameState.playerNumber == 1)
+        {
+            algorithm = & goalKeeperAlgorithm;
+        }
+        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
+        {
+            algorithm = & defenderAlgorithm;
+            
+        }
+        else{
+            algorithm = & attackerAlgorithm;
+        }
+        
+        
+        if (algorithm->getCollectNewPolicy()) {
+            algorithm->waitForNewPolicy();
+            
+            algorithm->deleteModels();
+            algorithm->updateModels();
+            
+            if (RLConfig::train_mode) {
+                algorithm->deletePolicyFiles();
+            }
+            
+            algorithm->setCollectNewPolicy(false);
+        }
+        
+
         
         const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
         std::vector<NeuralNetwork::TensorXf> observation_input(algorithm->getSharedModel()->getInputs().size());
