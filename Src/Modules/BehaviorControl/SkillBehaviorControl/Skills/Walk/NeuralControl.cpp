@@ -86,13 +86,10 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-<<<<<<< HEAD
 bool isSimRobot = true;
 bool robotPreCollision = false;
 
-=======
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
->>>>>>> dev-dynamic-roles
 
 std::mutex cognitionLock;
 
@@ -123,43 +120,12 @@ Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
 Algorithm * algorithm = NULL; // This is the current Algorithm.
-const int DECISION_INTERVAL = 15; // decision interval in seconds
+const int DECISION_INTERVAL = 2; // decision interval in seconds
 const int DECISION_TIME = 15; // the time used for decision making in time steps
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
-<<<<<<< HEAD
+
                      {,
-    IMPLEMENTS(NeuralControl),
-    REQUIRES(ArmContactModel),
-    REQUIRES(FootBumperState),
-    REQUIRES(FrameInfo),
-    REQUIRES(GameState),
-    REQUIRES(LibWalk),
-    REQUIRES(MotionInfo),
-    REQUIRES(PathPlanner),
-    REQUIRES(FieldBall),
-    REQUIRES(RobotPose),
-    REQUIRES(ObstacleModel),
-    REQUIRES(GlobalTeammatesModel),
-    REQUIRES(StrategyStatus),
-    REQUIRES(WalkingEngineOutput),
-    REQUIRES(TeamData),
-    MODIFIES(BehaviorStatus),
-    CALLS(LookForward),
-    CALLS(Stand),
-    CALLS(PublishMotion),
-    CALLS(WalkAtRelativeSpeed),
-    CALLS(WalkToPose),
-    CALLS(WalkToBallAndKick),
-    
-    DEFINES_PARAMETERS(
-                       {,
-                           (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
-                           (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
-                           (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
-                       }),
-=======
-{,
   IMPLEMENTS(NeuralControl),
   REQUIRES(ArmContactModel),
   REQUIRES(FootBumperState),
@@ -189,7 +155,6 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
     (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
     (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
   }),
->>>>>>> dev-dynamic-roles
 });
 
 // This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
@@ -222,7 +187,6 @@ float getOwnDistance(RobotPose theRobotPose, FieldBall theFieldBall, FieldDimens
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
-<<<<<<< HEAD
 public:
     virtual bool onSegment(Vector2f p, Vector2f q, Vector2f r);
     virtual int orientation(Vector2f p, Vector2f q, Vector2f r);
@@ -230,9 +194,6 @@ public:
     virtual bool preCollision(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector, float predictedPosX, float predictedPosY, bool obstacle[]);
     virtual void addObstaclesSimRobot(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector);
     virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
-    option(NeuralControl)
-    {
-=======
   option(NeuralControl)
   {
 
@@ -321,17 +282,17 @@ public:
           algorithm = & attackerAlgorithm;
       }
       
-      /*
-      
+  
+     /*
       if(algorithm == & goalKeeperAlgorithm) {
-          theBehaviorStatus.roles = 1;
+          std::cout << "robot" << theGameState.playerNumber << "is a goal keeper" << std::endl;
       } else if(algorithm == & defenderAlgorithm) {
-          theBehaviorStatus.roles = 3;
-          defenderCount++;
+          std::cout << "robot" << theGameState.playerNumber << "is a defender" << std::endl;
       } else {
-          theBehaviorStatus.roles = 2;
-          attackerCount++;
+          std::cout << "robot" << theGameState.playerNumber << "is a attacker" << std::endl;
       }
+      */
+       /*
       
       for(auto & teammate : theTeamData.teammates) {
           if(teammate.number != theGameState.playerNumber) {
@@ -377,47 +338,6 @@ public:
               algorithm->setCollectNewPolicy(false);
     }
       
->>>>>>> dev-dynamic-roles
-        
-        
-        cognitionLock.lock();
-        
-        if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
-        {
-            timeData.insert(std::to_string(theGameState.playerNumber), 0);
-        }
-        
-        int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
-        
-        
-        if (theGameState.playerNumber == 1)
-        {
-            algorithm = & goalKeeperAlgorithm;
-        }
-        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
-        {
-            algorithm = & defenderAlgorithm;
-            
-        }
-        else{
-            algorithm = & attackerAlgorithm;
-        }
-        
-        
-        if (algorithm->getCollectNewPolicy()) {
-            algorithm->waitForNewPolicy();
-            
-            algorithm->deleteModels();
-            algorithm->updateModels();
-            
-            if (RLConfig::train_mode) {
-                algorithm->deletePolicyFiles();
-            }
-            
-            algorithm->setCollectNewPolicy(false);
-        }
-        
-        
         
         const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
         std::vector<NeuralNetwork::TensorXf> observation_input(algorithm->getSharedModel()->getInputs().size());
@@ -591,7 +511,7 @@ public:
             theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                 0.0f,
                 0.0f}});
-            std::cout << "Looking for ball" << std::endl;
+            //std::cout << "Looking for ball" << std::endl;
         }
         else if(RLConfig::shieldEnabled && shield)
         {

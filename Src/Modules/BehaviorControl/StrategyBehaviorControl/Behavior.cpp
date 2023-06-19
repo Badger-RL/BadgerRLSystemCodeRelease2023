@@ -768,13 +768,13 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     if(actions && !actions->empty() && (static_cast<std::size_t>(agent.setPlayStep) < actions->size() + 1))
     {
       if(!agent.setPlayStep)
-<<<<<<< HEAD
+
 //          std::cout << "Hello" << std::endl;
 //          std::cout << agent.number << " set play set: " << agent.setPlayStep << std::endl;
-=======
+
           //std::cout << "Hello" << std::endl;
           //std::cout << agent.number << " set play set: " << agent.setPlayStep << std::endl;
->>>>>>> dev-dynamic-roles
+
         return SkillRequest::Builder::walkTo(agent.basePose);
       const SetPlay::Action& action = (*actions)[agent.setPlayStep - 1];
       return setPlayActions[action.type] ? setPlayActions[action.type]->execute(action, agent, otherAgents) : SkillRequest::Builder::empty();
@@ -1018,11 +1018,9 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
-<<<<<<< HEAD
+
 //      std::cout << "can be active minAgent: " << minAgent->number << std::endl;
-=======
-      //std::cout << "can be active minAgent: " << minAgent->number << std::endl;
->>>>>>> dev-dynamic-roles
+
     return minAgent;
   }
   else if(assign && canBeActive(self, self.role == ActiveRole::toRole(ActiveRole::closestToTeammatesBall), false) && theTeammatesBallModel.isValid)
@@ -1088,11 +1086,11 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     }
     if(assign && minAgent)
       minAgent->nextRole = ActiveRole::toRole(isOpponentFreeKick ? ActiveRole::freeKickWall : ActiveRole::playBall);
-<<<<<<< HEAD
+
 //      std::cout << "minAgent: " << minAgent->number << std::endl;
-=======
+
       //std::cout << "minAgent: " << minAgent->number << std::endl;
->>>>>>> dev-dynamic-roles
+
     return minAgent;
   }
 }
