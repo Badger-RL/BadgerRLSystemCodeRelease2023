@@ -486,9 +486,6 @@ public:
                         break;
                     case 4:
                         addObstaclesSimRobot(obstacleXVector4, obstacleYVector4);
-                        for(unsigned int i = 0; i < obstacleXVector4.size(); i++){
-                            std::cout << "Robot 4 Perceived Obstacle Position: " << obstacleXVector4[i] << ", " <<obstacleYVector4[i] << std::endl;
-                        }
                         robotPreCollision = preCollision(obstacleXVector4, obstacleYVector4, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 5:
@@ -569,8 +566,8 @@ public:
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
             double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
             std::cout << "Angle to go: " << angle * 180/PI << std::endl;
-            float x = 1000.f * cos(angle);
-            float y = 1000.f * sin(angle);
+            float x = 300.f * cos(angle);
+            float y = 300.f * sin(angle);
             std::cout << "x: " << x << ", y: " << y << std::endl;
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
