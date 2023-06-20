@@ -431,7 +431,6 @@ public:
             std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
             std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
             std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
-            std::cout << "Angle of Robot: " << theRobotPose.rotation << std::endl;
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -455,16 +454,12 @@ public:
                         robotPreCollision = preCollision(obstacleXVector5, obstacleYVector5, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                 }
-                for(int i = 0; i < 8; i++){
-                    std::cout << "obstacle region " << i+1 <<  ": " << obstacles[i] << std::endl;
-                }
 
 
             }
             else{
                 addObstaclesSimRobot(obstacleXVector, obstacleYVector);
                 robotPreCollision = preCollision(obstacleXVector, obstacleYVector, predictedPosition[0], predictedPosition[1], obstacles);
-                std::cout << obstacleXVector.size() << std::endl;
             }
             
             
@@ -527,7 +522,6 @@ public:
             std::cout << "Collision Avoidance activated" << std::endl;
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
             double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-            std::cout << "Angle to go: " << angle * 180/PI << std::endl;
             float x = 300.f * cos(angle);
             float y = 300.f * sin(angle);
             std::cout << "x: " << x << ", y: " << y << std::endl;
@@ -640,16 +634,18 @@ bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<
         Vector2f PredictedPoseVector(predictedPosX, predictedPosY);
         Vector2f obstaclePose(ObstacleX[i], ObstacleY[i]);
 
-        std::cout << (theRobotPose.translation - PredictedPoseVector).norm() << std::endl;
-        std::cout << "Obstacle Position in global coordinates: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
+        double dist = (theRobotPose.translation - PredictedPoseVector).norm();
+        Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
+        Vector2f newVector = Vector2f(theRobotPose.translation.x() + unitVector.x()*100.f, theRobotPose.translation.y() + unitVector.y()*100.f);
+        std::cout << "unit vector length: " << dist << std::endl;
+        std::cout << "New Vector: " << newVector.x() << ", " << newVector.y() << std::endl;
+        std::cout << "Distance between robot and obstacle: " << (theRobotPose.translation - obstaclePose).norm() << std::endl;
         bool intersect = (doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, stl) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, sbr) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbr, str) || doIntersect(theRobotPose.translation, PredictedPoseVector, stl, str));
         double angleRelativeToRobot = atan2( ObstacleY[i] - theRobotPose.translation.y(), ObstacleX[i] - theRobotPose.translation.x());
         if(angleRelativeToRobot<0){
             angleRelativeToRobot += 2*PI;
         }
-        std::cout << "Angle in degree: " << angleRelativeToRobot * 180 / PI << std::endl;
         if((theRobotPose.translation - obstaclePose).norm() < 500.f){
-            std::cout << "Obstacle within distance: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
             obstacles[(int)(angleRelativeToRobot / (PI/4))] = true;
         }
            
@@ -694,7 +690,6 @@ std::pair<int, int> NeuralControlImpl::startIndexOfLongestConsecutive0s(const bo
 
         // Get the current element. Special Handling for last element
         const bool value = data[i];
-            std::cout << value << std::endl;
         // If we see a 1, then we are in a open sliding window
         if (value == false) {
 
