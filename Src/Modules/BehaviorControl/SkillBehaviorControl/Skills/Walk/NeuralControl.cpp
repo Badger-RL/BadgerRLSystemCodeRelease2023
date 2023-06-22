@@ -69,7 +69,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = true;
+bool isSimRobot = false;
 bool robotPreCollision = false;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
@@ -607,8 +607,8 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
         double dist = (theRobotPose.translation - PredictedPoseVector).norm();
         Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
         Vector2f newVector = Vector2f(theRobotPose.translation.x() + unitVector.x()*100.f, theRobotPose.translation.y() + unitVector.y()*100.f);
-        Vector2f rotateCounterClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), 15, newVector);
-        Vector2f rotateClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), -15, newVector);
+        Vector2f rotateCounterClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), 10, newVector);
+        Vector2f rotateClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), -10, newVector);
         
         intersect = (doIntersect(theRobotPose.translation, newVector, sbl, stl) || doIntersect(theRobotPose.translation, newVector, sbl, sbr) || doIntersect(theRobotPose.translation, newVector, sbr, str) || doIntersect(theRobotPose.translation, newVector, stl, str));
         intersect2 = (doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateCounterClockwise, stl, str));
