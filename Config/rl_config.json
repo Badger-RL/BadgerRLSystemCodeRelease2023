@@ -9,7 +9,7 @@
   "train_mode": false,
   "deterministic": true,
   "referee_enabled": false,
-  "shield_enabled": false,
+  "shield_enabled": true,
   "start_from_pretrained": false,
   "batch_size": 1000,
   "episode_length": 1000,
