@@ -5,6 +5,7 @@
  *
  * @author Arne Hasselbring
  * @author Sina Schreiber
+ * @author Ike Nguyen
  */
 
 #include "FreeKickWall.h"

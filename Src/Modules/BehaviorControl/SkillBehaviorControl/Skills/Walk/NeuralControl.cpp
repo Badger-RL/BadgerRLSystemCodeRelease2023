@@ -3,7 +3,9 @@
  *
  * This file implements an implementation for the NeuralControl skill.
  *
- * @author Arne Hasselbring (the actual behavior is older), John Balis, Chen Li
+ * @author Arne Hasselbring (the actual behavior is older)
+ * @author John Balis
+ * @author Chen Li
  */
 
 #include <CompiledNN/CompiledNN.h>
@@ -176,7 +178,6 @@ struct ObstacleVector{
 };
 
 std::vector<ObstacleVector> physicalRobot;
-
 std::vector<ObstacleVector> simRobot1;
 std::vector<ObstacleVector> simRobot2;
 std::vector<ObstacleVector> simRobot3;
@@ -323,7 +324,6 @@ public:
          } */
         
         
-        
         if (algorithm->getCollectNewPolicy()) {
             algorithm->waitForNewPolicy();
             
@@ -336,7 +336,6 @@ public:
             
             algorithm->setCollectNewPolicy(false);
         }
-        
         
         
         const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
@@ -386,12 +385,12 @@ public:
         
         theLookForwardSkill();
         
-        float minObstacleDistance = std::numeric_limits<float>::max();
-        //    float minTeammateDistance =  std::numeric_limits<float>::max();
-        float minTeammateDistance =  300.f;
+        //float minObstacleDistance = std::numeric_limits<float>::max();
+        //float minTeammateDistance =  std::numeric_limits<float>::max();
+        //float minTeammateDistance =  300.f;
         
-        double angleToClosestObstacle = PI;
-        double angleToClosesTeammate = PI;
+        //double angleToClosestObstacle = PI;
+        //double angleToClosesTeammate = PI;
         
         
         std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
@@ -420,7 +419,6 @@ public:
             {
                 shield = true;
             }
-            
             
             
             std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
@@ -460,26 +458,8 @@ public:
             std::cout << "\n";
         }
         
-        
-        if (theFieldBall.timeSinceBallWasSeen > 4000)
-        {
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
-            //std::cout << "Looking for ball" << std::endl;
-        }
-        else if(RLConfig::shieldEnabled && shield)
-        {
-            //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-            
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
-            std::cout << "Shielding activated" << std::endl;
-            
-        }
-        else if(robotPreCollision){
-            std::cout << "Collision Avoidance activated" << std::endl;
+        if (theGameState.isFreeKick() && robotPreCollision) {
+            std::cout << "Collision Avoidance activated during free kick" << std::endl;
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
             double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
             float x = 300.f * cos(angle);
@@ -487,27 +467,55 @@ public:
             std::cout << "x: " << x << ", y: " << y << std::endl;
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
-        }
-        else{
+        } else {
             
-            if (algorithm->getActionLength() == 3){
-                theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-            }
-            else if(algorithm->getActionLength() == 4)
+            if (theFieldBall.timeSinceBallWasSeen > 4000)
             {
-                theWalkToBallAndKickSkill({
-                    .targetDirection = 0_deg,
-                    .kickType = KickInfo::walkForwardsRightLong,
-                    .kickLength = 1000.f,
-                });
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+                //std::cout << "Looking for ball" << std::endl;
             }
-            else
+            else if(RLConfig::shieldEnabled && shield)
             {
-                std::cout << "unsupported action space" << std::endl;
+                //std::cout << "HEURISTIC ACTIVATED" << std::endl;
+                
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+                std::cout << "Shielding activated" << std::endl;
+                
             }
-            
+            else if(robotPreCollision){
+                std::cout << "Collision Avoidance activated" << std::endl;
+                std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+                double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+                float x = 300.f * cos(angle);
+                float y = 300.f * sin(angle);
+                std::cout << "x: " << x << ", y: " << y << std::endl;
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
+                
+            }
+            else{
+                
+                if (algorithm->getActionLength() == 3){
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                }
+                else if(algorithm->getActionLength() == 4)
+                {
+                    theWalkToBallAndKickSkill({
+                        .targetDirection = 0_deg,
+                        .kickType = KickInfo::walkForwardsRightLong,
+                        .kickLength = 1000.f,
+                    });
+                }
+                else
+                {
+                    std::cout << "unsupported action space" << std::endl;
+                }
+                
+            }
         }
-        
         
         if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
             prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
@@ -525,7 +533,6 @@ public:
         
     }
 };
-
 
 
 // Given three collinear points p, q, r, the function checks if
@@ -554,8 +561,6 @@ int NeuralControlImpl::orientation(Vector2f p, Vector2f q, Vector2f r)
     
     return (val > 0)? 1: 2; // clock or counterclock wise
 }
-
-
 
 
 // The main function that returns true if line segment 'p1q1'
@@ -588,8 +593,6 @@ bool NeuralControlImpl::doIntersect(Vector2f p1, Vector2f q1, Vector2f p2, Vecto
     
     return false; // Doesn't fall in any of the above cases
 }
-
-
 
 bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, float predictedPosX, float predictedPosY, bool obstacles[8]){
     bool intersect = false;
@@ -635,8 +638,6 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
     return intersect || intersect2 || intersect3 || withInRobotSquare;
 }
 
-
-
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
 
     for (auto & obstacle : theObstacleModel.obstacles)
@@ -654,8 +655,6 @@ void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstac
         Obstacle.push_back(o);
     }
 }
-
-
 
 
 // Calculate longest sub array with all 1's index
@@ -730,10 +729,5 @@ Vector2f NeuralControlImpl::rotate_point(float cx,float cy,float angleDegree, Ve
     py = ynew + cy;
     return Vector2f(px, py);
 }
-
-
-
-
-
 
 MAKE_SKILL_IMPLEMENTATION(NeuralControlImpl);
