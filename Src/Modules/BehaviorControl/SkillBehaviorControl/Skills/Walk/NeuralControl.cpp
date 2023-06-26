@@ -69,7 +69,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = true;
+bool isSimRobot = false;
 bool robotPreCollision = false;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
