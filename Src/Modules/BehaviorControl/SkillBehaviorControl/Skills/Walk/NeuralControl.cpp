@@ -127,7 +127,6 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 
 {,
-
   IMPLEMENTS(NeuralControl),
   REQUIRES(ArmContactModel),
   REQUIRES(FootBumperState),
@@ -236,6 +235,10 @@ public:
       
       // Let there be 3 second interval in between changes of roles
       if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
+          
+          int attackerCount = 0;
+          int defenderCount = 0;
+          
           // Make sure Goal keeper keeps its role and assign new roles
           if(theGameState.playerNumber == 1) {
               std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
