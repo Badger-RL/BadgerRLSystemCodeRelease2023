@@ -3,7 +3,9 @@
  *
  * This file implements an implementation for the NeuralControl skill.
  *
- * @author Arne Hasselbring (the actual behavior is older), John Balis, Chen Li
+ * @author Arne Hasselbring (the actual behavior is older)
+ * @author John Balis
+ * @author Chen Li
  */
 
 #include <CompiledNN/CompiledNN.h>
@@ -59,25 +61,8 @@
 int observation_size = 12;
 int action_size = 3;
 
-std::vector<float> obstacleXVector;
-std::vector<float> obstacleYVector;
 
 
-
-std::vector<float> obstacleXVector1;
-std::vector<float> obstacleYVector1;
-
-std::vector<float> obstacleXVector2;
-std::vector<float> obstacleYVector2;
-
-std::vector<float> obstacleXVector3;
-std::vector<float> obstacleYVector3;
-
-std::vector<float> obstacleXVector4;
-std::vector<float> obstacleYVector4;
-
-std::vector<float> obstacleXVector5;
-std::vector<float> obstacleYVector5;
 
 //we keep track of timesteps separately for each robot, using this json object
 json::object timeData = json::object{};
@@ -156,6 +141,41 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
     (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
     (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
   }),
+=======
+                     
+                     
+                     {,
+    
+    IMPLEMENTS(NeuralControl),
+    REQUIRES(ArmContactModel),
+    REQUIRES(FootBumperState),
+    REQUIRES(FrameInfo),
+    REQUIRES(GameState),
+    REQUIRES(LibWalk),
+    REQUIRES(MotionInfo),
+    REQUIRES(PathPlanner),
+    REQUIRES(FieldBall),
+    REQUIRES(RobotPose),
+    REQUIRES(ObstacleModel),
+    REQUIRES(TeamData),
+    REQUIRES(GlobalTeammatesModel),
+    REQUIRES(StrategyStatus),
+    REQUIRES(WalkingEngineOutput),
+    REQUIRES(FieldDimensions),
+    MODIFIES(BehaviorStatus),
+    CALLS(LookForward),
+    CALLS(Stand),
+    CALLS(PublishMotion),
+    CALLS(WalkAtRelativeSpeed),
+    CALLS(WalkToPose),
+    CALLS(WalkToBallAndKick),
+    DEFINES_PARAMETERS(
+                       {,
+                           (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
+                           (float)(900.f) switchToLibWalkDistance, /**< If the target is closer than this distance, LibWalk is used. */
+                           (float)(175.f) targetForwardWalkingSpeed, /**< Reduce walking speed to reach this forward speed (in mm/s). */
+                       }),
+>>>>>>> 92d4ff955b38180a156499ef36f9af03088b9500
 });
 
 // This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
@@ -185,6 +205,18 @@ float getOwnDistance(RobotPose theRobotPose, FieldBall theFieldBall, FieldDimens
     return ownDistance;
 }
 
+struct ObstacleVector{
+    float x;
+    float y;
+    bool isteammate;
+};
+
+std::vector<ObstacleVector> physicalRobot;
+std::vector<ObstacleVector> simRobot1;
+std::vector<ObstacleVector> simRobot2;
+std::vector<ObstacleVector> simRobot3;
+std::vector<ObstacleVector> simRobot4;
+std::vector<ObstacleVector> simRobot5;
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
@@ -192,8 +224,8 @@ public:
     virtual bool onSegment(Vector2f p, Vector2f q, Vector2f r);
     virtual int orientation(Vector2f p, Vector2f q, Vector2f r);
     virtual bool doIntersect(Vector2f p1, Vector2f q1, Vector2f p2, Vector2f q2);
-    virtual bool preCollision(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector, float predictedPosX, float predictedPosY, bool obstacle[]);
-    virtual void addObstaclesSimRobot(std::vector<float> &obstacleXVector, std::vector<float> &obstacleYVector);
+    virtual bool preCollision(std::vector<ObstacleVector>& Obstacle, float predictedPosX, float predictedPosY, bool obstacle[]);
+    virtual void addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle);
     virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
   option(NeuralControl)
   {
@@ -337,13 +369,152 @@ public:
               algorithm->updateModels();
 
               if (RLConfig::train_mode) {
+=======
+    virtual Vector2f rotate_point(float cx,float cy,float angle, Vector2f p);
+    option(NeuralControl)
+    {
+        
+        cognitionLock.lock();
+        
+        if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
+        {
+            timeData.insert(std::to_string(theGameState.playerNumber), 0);
+        }
+        
+        int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
+        
+        
+        int role; // the role our robot takes
+        int count = 0; // the count of other robots have a greater measure
+        theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
+        float ownDistance = theBehaviorStatus.distance; // our own distance
+        
+        // Iterate through all teammates and find out their distance measure
+        for(auto & teammate : theTeamData.teammates) {
+            // Exclude the goal keeper and ourselves
+            if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
+                float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+                
+                // if the teammate has a greater distance, update the count
+                if(ownDistance < distance) {
+                    count++;
+                }
+            }
+        }
+        
+        // assign role based on num of robots closer
+        if(count >= 2) {
+            role = 3;
+        } else {
+            role = 2;
+        }
+        
+        // Let there be 3 second interval in between changes of roles
+        if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
+            // Make sure Goal keeper keeps its role and assign new roles
+            if(theGameState.playerNumber == 1) {
+                std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & goalKeeperAlgorithm;
+                
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 1);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 1;
+                }
+            } else if(role == 2) {
+                std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & attackerAlgorithm;
+                
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 2);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 2;
+                }
+            } else {
+                std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & defenderAlgorithm;
+                
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 3);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 3;
+                }
+            }
+        }
+        
+        // Make sure everything is updated every time step, default is attacker
+        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+            // Assign role based on previous roles
+            if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+                algorithm = & goalKeeperAlgorithm;
+            } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+                algorithm = & attackerAlgorithm;
+            } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+                algorithm = & defenderAlgorithm;
+            }
+        } else {
+            algorithm = & attackerAlgorithm;
+        }
+        
+        
+        /*
+         if(algorithm == & goalKeeperAlgorithm) {
+         std::cout << "robot" << theGameState.playerNumber << "is a goal keeper" << std::endl;
+         } else if(algorithm == & defenderAlgorithm) {
+         std::cout << "robot" << theGameState.playerNumber << "is a defender" << std::endl;
+         } else {
+         std::cout << "robot" << theGameState.playerNumber << "is a attacker" << std::endl;
+         }
+         */
+        /*
+         
+         for(auto & teammate : theTeamData.teammates) {
+         if(teammate.number != theGameState.playerNumber) {
+         if(teammate.theBehaviorStatus.roles == 3) {
+         defenderCount++;
+         } else if(teammate.theBehaviorStatus.roles == 2) {
+         attackerCount++;
+         }
+         }
+         }
+         if(attackerCount >= 3 && algorithm == & attackerAlgorithm) {
+         algorithm = & defenderAlgorithm;
+         theBehaviorStatus.roles = 3;
+         
+         if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+         preRole.insert(std::to_string(theGameState.playerNumber), 3);
+         } else {
+         preRole[std::to_string(theGameState.playerNumber)] = 3;
+         }
+         } else if ((defenderCount >= 3 && algorithm == & defenderAlgorithm) || attackerCount == 0) {
+         algorithm = & attackerAlgorithm;
+         theBehaviorStatus.roles = 2;
+         
+         if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+         preRole.insert(std::to_string(theGameState.playerNumber), 2);
+         } else {
+         preRole[std::to_string(theGameState.playerNumber)] = 2;
+         }
+         } */
+        
+        
+        if (algorithm->getCollectNewPolicy()) {
+            algorithm->waitForNewPolicy();
+            
+            algorithm->deleteModels();
+            algorithm->updateModels();
+            
+            if (RLConfig::train_mode) {
+>>>>>>> 92d4ff955b38180a156499ef36f9af03088b9500
                 algorithm->deletePolicyFiles();
-              }
-
-              algorithm->setCollectNewPolicy(false);
-    }
-      
-
+            }
+            
+            algorithm->setCollectNewPolicy(false);
+        }
+        
         
         const std::vector<NeuralNetwork::TensorLocation> &shared_input = algorithm->getSharedModel()->getInputs();
         std::vector<NeuralNetwork::TensorXf> observation_input(algorithm->getSharedModel()->getInputs().size());
@@ -392,12 +563,12 @@ public:
         
         theLookForwardSkill();
         
-        float minObstacleDistance = std::numeric_limits<float>::max();
-        //    float minTeammateDistance =  std::numeric_limits<float>::max();
-        float minTeammateDistance =  300.f;
+        //float minObstacleDistance = std::numeric_limits<float>::max();
+        //float minTeammateDistance =  std::numeric_limits<float>::max();
+        //float minTeammateDistance =  300.f;
         
-        double angleToClosestObstacle = PI;
-        double angleToClosesTeammate = PI;
+        //double angleToClosestObstacle = PI;
+        //double angleToClosesTeammate = PI;
         
         
         std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
@@ -411,8 +582,6 @@ public:
         
         
         bool shield = false;
-        bool moveRight = false;
-        bool moveLeft = false;
         bool obstacles[8] = {false, false, false, false,false, false, false,false};
         if (RLConfig::shieldEnabled)
         {
@@ -428,135 +597,103 @@ public:
             {
                 shield = true;
             }
-
             
             
             std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
             std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
             std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
-            std::cout << "Angle of Robot: " << theRobotPose.rotation << std::endl;
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
-                        addObstaclesSimRobot(obstacleXVector1, obstacleYVector1);
-                        robotPreCollision = preCollision(obstacleXVector1, obstacleYVector1, predictedPosition[0], predictedPosition[1], obstacles);
+                        addObstaclesSimRobot(simRobot1);
+                        robotPreCollision = preCollision(simRobot1, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 2:
-                        addObstaclesSimRobot(obstacleXVector2, obstacleYVector2);
-                        robotPreCollision = preCollision(obstacleXVector2, obstacleYVector2, predictedPosition[0], predictedPosition[1], obstacles);
+                        addObstaclesSimRobot(simRobot2);
+                        robotPreCollision = preCollision(simRobot2, predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 3:
-                        addObstaclesSimRobot(obstacleXVector3, obstacleYVector3);
-                        robotPreCollision = preCollision(obstacleXVector3, obstacleYVector3, predictedPosition[0], predictedPosition[1], obstacles);
+                        addObstaclesSimRobot(simRobot3);
+                        robotPreCollision = preCollision(simRobot3,  predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 4:
-                        addObstaclesSimRobot(obstacleXVector4, obstacleYVector4);
-                        robotPreCollision = preCollision(obstacleXVector4, obstacleYVector4, predictedPosition[0], predictedPosition[1], obstacles);
+                        addObstaclesSimRobot(simRobot4);
+                        robotPreCollision = preCollision(simRobot4,  predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                     case 5:
-                        addObstaclesSimRobot(obstacleXVector5, obstacleYVector5);
-                        robotPreCollision = preCollision(obstacleXVector5, obstacleYVector5, predictedPosition[0], predictedPosition[1], obstacles);
+                        addObstaclesSimRobot(simRobot5);
+                        robotPreCollision = preCollision(simRobot5,  predictedPosition[0], predictedPosition[1], obstacles);
                         break;
                 }
-                for(int i = 0; i < 8; i++){
-                    std::cout << "obstacle region " << i+1 <<  ": " << obstacles[i] << std::endl;
-                }
-
-
+                
+                
             }
             else{
-                addObstaclesSimRobot(obstacleXVector, obstacleYVector);
-                robotPreCollision = preCollision(obstacleXVector, obstacleYVector, predictedPosition[0], predictedPosition[1], obstacles);
-                std::cout << obstacleXVector.size() << std::endl;
+                addObstaclesSimRobot(physicalRobot);
+                robotPreCollision = preCollision(physicalRobot, predictedPosition[0], predictedPosition[1], obstacles);
             }
             
-            
-            
-            
-//            for (auto & teammate : theTeamData.teammates)
-//            {
-//                Vector2f stl(teammate.theRobotPose.translation.x() + 200.f, teammate.theRobotPose.translation.y() + 200.f);
-//                Vector2f sbl(teammate.theRobotPose.translation.x() - 200.f, teammate.theRobotPose.translation.y() + 200.f);
-//                Vector2f str(teammate.theRobotPose.translation.x() + 200.f, teammate.theRobotPose.translation.y() - 200.f);
-//                Vector2f sbr(teammate.theRobotPose.translation.x() - 200.f, teammate.theRobotPose.translation.y() - 200.f);
-//
-//                Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
-//
-//                float distBetweenPredictedVectorAndPos = (theRobotPose.translation - PredictedPoseVector).norm();
-//                Vector2f unitPredictedVector(PredictedPoseVector.x()/distBetweenPredictedVectorAndPos, PredictedPoseVector.y()/distBetweenPredictedVectorAndPos);
-//                Vector2f resizedPredictedPoseVector(PredictedPoseVector.x()/distBetweenPredictedVectorAndPos * 300, PredictedPoseVector.y()/distBetweenPredictedVectorAndPos * 300);
-//                std::cout << "distBetweenPredictedVectorAndPos: " << distBetweenPredictedVectorAndPos << std::endl;
-//                std::cout << "resizedPredictedPoseVector: " << resizedPredictedPoseVector << std::endl;
-//                std::cout << "unitPredictedVector: " << unitPredictedVector << std::endl;
-
-//                std::cout << "teammate number: " << teammate.number << std::endl;
-//                std::cout << "teammate Position x: " << teammate.theRobotPose.translation.x() << std::endl;
-//                std::cout << "teammate Position y: " << teammate.theRobotPose.translation.y() << std::endl;
-//                std::cout << "Distance betwen Robot and its teammates: " << (teammate.theRobotPose.translation - theRobotPose.translation).norm() << std::endl;
-
-//                bool intersect = doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, stl) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, sbr) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbr, str) || doIntersect(theRobotPose.translation, PredictedPoseVector, stl, str);
-//
-//                if((teammate.theRobotPose.translation - theRobotPose.translation).norm() < minTeammateDistance && intersect){
-//                    std::cout << "Teammate Position that is in the way: " << teammate.theRobotPose.translation << std::endl;
-//                    robotPreCollision = true;
-//                }
-//            }
-
-
-            
-            
-            
+            std::cout << "\n";
         }
         
-        
-        if (theFieldBall.timeSinceBallWasSeen > 4000)
-        {
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
-            //std::cout << "Looking for ball" << std::endl;
-        }
-        else if(RLConfig::shieldEnabled && shield)
-        {
-            //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-            
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
-            std::cout << "Shielding activated" << std::endl;
-
-        }
-        else if(robotPreCollision){
-            std::cout << "Collision Avoidance activated" << std::endl;
+        if (theGameState.isFreeKick() && robotPreCollision) {
+            std::cout << "Collision Avoidance activated during free kick" << std::endl;
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
             double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-            std::cout << "Angle to go: " << angle * 180/PI << std::endl;
             float x = 300.f * cos(angle);
             float y = 300.f * sin(angle);
             std::cout << "x: " << x << ", y: " << y << std::endl;
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
-        }
-        else{
+        } else {
             
-            if (algorithm->getActionLength() == 3){
-                theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-            }
-            else if(algorithm->getActionLength() == 4)
+            if (theFieldBall.timeSinceBallWasSeen > 4000)
             {
-                theWalkToBallAndKickSkill({
-                    .targetDirection = 0_deg,
-                    .kickType = KickInfo::walkForwardsRightLong,
-                    .kickLength = 1000.f,
-                });
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+                //std::cout << "Looking for ball" << std::endl;
             }
-            else
+            else if(RLConfig::shieldEnabled && shield)
             {
-                std::cout << "unsupported action space" << std::endl;
+                //std::cout << "HEURISTIC ACTIVATED" << std::endl;
+                
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+                std::cout << "Shielding activated" << std::endl;
+                
             }
-            
+            else if(robotPreCollision){
+                std::cout << "Collision Avoidance activated" << std::endl;
+                std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+                double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+                float x = 300.f * cos(angle);
+                float y = 300.f * sin(angle);
+                std::cout << "x: " << x << ", y: " << y << std::endl;
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
+                
+            }
+            else{
+                
+                if (algorithm->getActionLength() == 3){
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                }
+                else if(algorithm->getActionLength() == 4)
+                {
+                    theWalkToBallAndKickSkill({
+                        .targetDirection = 0_deg,
+                        .kickType = KickInfo::walkForwardsRightLong,
+                        .kickLength = 1000.f,
+                    });
+                }
+                else
+                {
+                    std::cout << "unsupported action space" << std::endl;
+                }
+                
+            }
         }
-        
         
         if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
             prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
@@ -574,6 +711,7 @@ public:
         
     }
 };
+
 
 // Given three collinear points p, q, r, the function checks if
 // point q lies on line segment 'pr'
@@ -601,6 +739,7 @@ int NeuralControlImpl::orientation(Vector2f p, Vector2f q, Vector2f r)
     
     return (val > 0)? 1: 2; // clock or counterclock wise
 }
+
 
 // The main function that returns true if line segment 'p1q1'
 // and 'p2q2' intersect.
@@ -632,78 +771,85 @@ bool NeuralControlImpl::doIntersect(Vector2f p1, Vector2f q1, Vector2f p2, Vecto
     
     return false; // Doesn't fall in any of the above cases
 }
-bool NeuralControlImpl::preCollision(std::vector<float>& ObstacleX, std::vector<float>& ObstacleY, float predictedPosX, float predictedPosY, bool obstacles[8]){
-    bool intersect = false;
-    bool withInRobotSquare = false;
-    for(unsigned int i = 0; i < ObstacleX.size(); i ++){
-          Vector2f stl(ObstacleX[i] + 250.f, ObstacleY[i] + 250.f);
-          Vector2f sbl(ObstacleX[i] - 250.f, ObstacleY[i] + 250.f);
-          Vector2f str(ObstacleX[i] + 250.f, ObstacleY[i] - 250.f);
-          Vector2f sbr(ObstacleX[i] - 250.f, ObstacleY[i] - 250.f);
-        Vector2f PredictedPoseVector(predictedPosX, predictedPosY);
-        Vector2f obstaclePose(ObstacleX[i], ObstacleY[i]);
 
-        std::cout << (theRobotPose.translation - PredictedPoseVector).norm() << std::endl;
-        std::cout << "Obstacle Position in global coordinates: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
-        bool intersect = (doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, stl) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbl, sbr) || doIntersect(theRobotPose.translation, PredictedPoseVector, sbr, str) || doIntersect(theRobotPose.translation, PredictedPoseVector, stl, str));
-        double angleRelativeToRobot = atan2( ObstacleY[i] - theRobotPose.translation.y(), ObstacleX[i] - theRobotPose.translation.x());
+bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, float predictedPosX, float predictedPosY, bool obstacles[8]){
+    bool intersect = false;
+    bool intersect2 = false;
+    bool intersect3 = false;
+    bool withInRobotSquare = false;
+    for(unsigned int i = 0; i < Obstacle.size(); i ++){
+        Vector2f stl(Obstacle[i].x + 250.f, Obstacle[i].y + 250.f);
+        Vector2f sbl(Obstacle[i].x - 250.f, Obstacle[i].y + 250.f);
+        Vector2f str(Obstacle[i].x + 250.f, Obstacle[i].y - 250.f);
+        Vector2f sbr(Obstacle[i].x - 250.f, Obstacle[i].y - 250.f);
+        Vector2f PredictedPoseVector(predictedPosX, predictedPosY);
+        Vector2f obstaclePose(Obstacle[i].x, Obstacle[i].y);
+        
+        double dist = (theRobotPose.translation - PredictedPoseVector).norm();
+        Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
+        Vector2f newVector = Vector2f(theRobotPose.translation.x() + unitVector.x()*100.f, theRobotPose.translation.y() + unitVector.y()*100.f);
+        Vector2f rotateCounterClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), 10, newVector);
+        Vector2f rotateClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), -10, newVector);
+        
+        intersect = (doIntersect(theRobotPose.translation, newVector, sbl, stl) || doIntersect(theRobotPose.translation, newVector, sbl, sbr) || doIntersect(theRobotPose.translation, newVector, sbr, str) || doIntersect(theRobotPose.translation, newVector, stl, str));
+        intersect2 = (doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateCounterClockwise, stl, str));
+        intersect3 = (doIntersect(theRobotPose.translation, rotateClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateClockwise, stl, str));
+        std::cout << "Distance between obstacle and Robot: " <<(theRobotPose.translation - obstaclePose).norm() << std::endl;
+        
+        double angleRelativeToRobot = atan2( Obstacle[i].y - theRobotPose.translation.y(), Obstacle[i].x - theRobotPose.translation.x());
         if(angleRelativeToRobot<0){
             angleRelativeToRobot += 2*PI;
         }
-        std::cout << "Angle in degree: " << angleRelativeToRobot * 180 / PI << std::endl;
         if((theRobotPose.translation - obstaclePose).norm() < 500.f){
-            std::cout << "Obstacle within distance: " << ObstacleX[i] << ", " << ObstacleY[i] << std::endl;
             obstacles[(int)(angleRelativeToRobot / (PI/4))] = true;
         }
-           
-        
         
         withInRobotSquare = theRobotPose.translation.x() <= stl.x() && theRobotPose.translation.x() >= sbl.x() && theRobotPose.translation.y() <= stl.y() && theRobotPose.translation.y() >= str.y();
         if(intersect || withInRobotSquare ){
             break;
         }
-        while (ObstacleX.size() > 15)
+        while (Obstacle.size() > 15)
         {
-            ObstacleX.erase(ObstacleX.begin());
-            ObstacleY.erase(ObstacleY.begin());
-            assert(ObstacleX.size() == ObstacleY.size());
+            Obstacle.erase(Obstacle.begin());
         }
     }
-    return intersect || withInRobotSquare;
+    return intersect || intersect2 || intersect3 || withInRobotSquare;
 }
-void NeuralControlImpl::addObstaclesSimRobot(std::vector<float>& ObstacleX, std::vector<float>& ObstacleY){
+
+void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
+
     for (auto & obstacle : theObstacleModel.obstacles)
     {
         if(!obstacle.isTeammate()){
-            ObstacleX.push_back(obstacle.center.x() + theRobotPose.translation.x());
-            ObstacleY.push_back(obstacle.center.y() + theRobotPose.translation.y());
+            ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
+            Obstacle.push_back(o);
         }
         
     }
     for(auto& teammate: theTeamData.teammates){
         std::cout << "teammate number: " << teammate.number << std::endl;
         std::cout << "teammate Position: " << teammate.theRobotPose.translation.x() << ", "<<teammate.theRobotPose.translation.y() << std::endl;
-        ObstacleX.push_back(teammate.theRobotPose.translation.x());
-        ObstacleY.push_back(teammate.theRobotPose.translation.y());
+        ObstacleVector o{teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y(), true};
+        Obstacle.push_back(o);
     }
 }
+
 
 // Calculate longest sub array with all 1's index
 std::pair<int, int> NeuralControlImpl::startIndexOfLongestConsecutive0s(const bool data[], int length) {
     int startIndex{}, counter{}, previousValue{},maxCounter{}, startIndexMax{}, endIndex{}, endIndexMax{};
-        std::pair<int, int> result;
+    std::pair<int, int> result;
     // Go through all elements of the array
     for (int i{}; i < length; ++i) {
-
+        
         // Get the current element. Special Handling for last element
         const bool value = data[i];
-            std::cout << value << std::endl;
         // If we see a 1, then we are in a open sliding window
         if (value == false) {
-
+            
             // If the window was just opened, then remember the start index
             if (previousValue == true) startIndex = i;
-                        if(data[i+1] == true || data[i] == false){ endIndex = i;}
+            if(data[i+1] == true || data[i] == false){ endIndex = i;}
             // Count the number of 1's in the open window. This will be the width at the end
             ++counter;
         }
@@ -714,36 +860,52 @@ std::pair<int, int> NeuralControlImpl::startIndexOfLongestConsecutive0s(const bo
                 // Store new max window size and new start index for max.                endIndex =
                 maxCounter = counter;
                 startIndexMax = startIndex;
-                                endIndexMax = endIndex;
+                endIndexMax = endIndex;
             }
             // Optimization: If the maximum size of a found window is bigger
             // than the rest of the remaining value, we can stop all activities
             if (maxCounter >= length / 2) break;
-
+            
             // Counter is 0 again
             counter = 0;
         }
         previousValue = value;
-
-
+        
+        
     }
-                    // Now, the value is 0. So the window is closed.
+    // Now, the value is 0. So the window is closed.
     if ((data[length-1] == false) && (counter > maxCounter)) {
-                // Store new max window size and new start index for max.                endIndex =
-      maxCounter = counter;
-      startIndexMax = startIndex;
-            endIndexMax = endIndex;
+        // Store new max window size and new start index for max.                endIndex =
+        maxCounter = counter;
+        startIndexMax = startIndex;
+        endIndexMax = endIndex;
     }
-
-            result.first = startIndexMax;
-        result.second = endIndexMax;
+    
+    result.first = startIndexMax;
+    result.second = endIndexMax;
     return result;
 }
 
-
-
-
-
-
+Vector2f NeuralControlImpl::rotate_point(float cx,float cy,float angleDegree, Vector2f p)
+{
+    float angle = angleDegree * PI / 180.0;
+    float s = sin(angle);
+    float c = cos(angle);
+    
+    float px = p.x();
+    float py = p.y();
+    // translate point back to origin:
+    px -= cx;
+    py -= cy;
+    
+    // rotate point
+    float xnew = px * c - py * s;
+    float ynew = px * s + py * c;
+    
+    // translate point back:
+    px = xnew + cx;
+    py = ynew + cy;
+    return Vector2f(px, py);
+}
 
 MAKE_SKILL_IMPLEMENTATION(NeuralControlImpl);
