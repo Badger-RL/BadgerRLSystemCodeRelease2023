@@ -458,15 +458,16 @@ public:
             std::cout << "\n";
         }
         
-        if (theGameState.isFreeKick() && robotPreCollision) {
-            std::cout << "Collision Avoidance activated during free kick" << std::endl;
-            std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
-            double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-            float x = 300.f * cos(angle);
-            float y = 300.f * sin(angle);
-            std::cout << "x: " << x << ", y: " << y << std::endl;
-            theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
-            
+        if (theGameState.isFreeKick()) {
+            if(robotPreCollision) {
+                std::cout << "Collision Avoidance activated during free kick" << std::endl;
+                std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+                double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+                float x = 300.f * cos(angle);
+                float y = 300.f * sin(angle);
+                std::cout << "x: " << x << ", y: " << y << std::endl;
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
+            }
         } else {
             
             if (theFieldBall.timeSinceBallWasSeen > 4000)
