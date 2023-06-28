@@ -18,6 +18,7 @@ Vector2f newPosition(float temp, double multiplier, Vector2f ballPosition, Vecto
   temp = sqrt(pow(ballPosition.x() - targetPosition.x(), 2)
                     + pow(ballPosition.y() - targetPosition.y(), 2));
   if (temp >= 750.f) {
+      std::cout << "traveling distance:" << temp << std::endl;
     return targetPosition;
   } else {
     return newPosition(temp, multiplier - 0.1, ballPosition, targetPosition, normalizeValue);
@@ -46,6 +47,6 @@ SkillRequest FreeKickWall::execute(const Agent&, const Agents&)
     currentTarget = targetPosition;
 
   //return SkillRequest::Builder::walkTo(Pose2f(0.f, 500.f));
-  
+    std::cout << "Free Kick is getting called" << std::endl;
   return SkillRequest::Builder::walkTo(Pose2f((ballPosition - currentTarget).angle(), currentTarget));
 }

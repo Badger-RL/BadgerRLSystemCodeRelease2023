@@ -788,12 +788,11 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
   //std::cout <<  "end print role" << std::endl;
 
   const Vector2f target(0.0,0.0);
-  /*if(theGameState.isKickIn()){
+  if(theGameState.isFreeKick()){
     std::cout << "Not returning Neural Control" << std::endl;
-
     return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
   }
-    std::cout << "Returning Neural Control" << std::endl;*/
+    std::cout << "Returning Neural Control" << std::endl;
 
   return SkillRequest::Builder::neuralControl(target);
 
