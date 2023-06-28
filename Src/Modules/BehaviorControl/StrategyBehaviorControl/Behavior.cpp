@@ -1086,7 +1086,7 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
 //      std::cout << "minAgent: " << minAgent->number << std::endl;
 
       //std::cout << "minAgent: " << minAgent->number << std::endl;
-
+      
     return minAgent;
   }
 }

@@ -71,7 +71,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = false;
+bool isSimRobot = true;
 bool robotPreCollision = false;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
@@ -105,11 +105,10 @@ Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
 Algorithm * algorithm = NULL; // This is the current Algorithm.
-const int DECISION_INTERVAL = 2; // decision interval in seconds
+const int DECISION_INTERVAL = 5; // decision interval in seconds
 const int DECISION_TIME = 15; // the time used for decision making in time steps
 
 SKILL_IMPLEMENTATION(NeuralControlImpl,
-                     
                      
                      {,
     
@@ -146,7 +145,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
 
 // This function serve to get the minimum distance between a point and a line segment. Inspired by https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment.
 double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, double endPointBY, double pointX, double pointY) {
-    const double LINE = pow(sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)), 2); // the representation of the line segment
+    const double LINE = sqrt(pow((endPointBX - endPointAX), 2) + pow((endPointBY - endPointAY), 2)); // the representation of the line segment
     
     // if the distance of the line is 0, which means it is a point, then return the distance between two points
     if(LINE == 0.0) {
@@ -157,19 +156,20 @@ double getMinimumDis(double endPointAX, double endPointAY, double endPointBX, do
     const double PVY = pointY - endPointAY;
     const double WVX = endPointBX - endPointAX;
     const double WVY = endPointBY - endPointAY;
-    const double T = std::max(0.0, std::min(1.0, (PVX * WVX + PVY * WVY) / LINE));
+    const double T = std::max(0.0, std::min(1.0, (PVX * WVX + PVY * WVY) / (LINE * LINE))); // Adjust here as well
     const double PX = endPointAX + T * (endPointBX - endPointAX);
     const double PY = endPointAY + T * (endPointBY - endPointAY);
     return sqrt(pow((PX - pointX), 2) + pow((PY - pointY), 2));
 }
 
-// Get the dynamic assigned Role of this Robot.
+
 float getOwnDistance(RobotPose theRobotPose, FieldBall theFieldBall, FieldDimensions theField)
 {
-    float ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - getMinimumDis(theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()); // the distance between the robot to the line segment connect the ball and our goal - the distance between the robot to the ball.
+    float ownDistance = getMinimumDis(theField.xPosOwnGoal, theField.yPosLeftGoal, theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), theRobotPose.translation.x(), theRobotPose.translation.y()) - sqrt(pow((theFieldBall.positionOnField.x() - theRobotPose.translation.x()), 2) + pow((theFieldBall.positionOnField.y() - theRobotPose.translation.y()), 2)); // the distance between the robot to the line segment connect the ball and our goal - the distance between the robot to the ball.
     
-    return ownDistance;
+    return abs(ownDistance);
 }
+
 
 struct ObstacleVector{
     float x;
@@ -193,6 +193,7 @@ public:
     virtual bool preCollision(std::vector<ObstacleVector>& Obstacle, float predictedPosX, float predictedPosY, bool obstacle[]);
     virtual void addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle);
     virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
+    
     virtual Vector2f rotate_point(float cx,float cy,float angle, Vector2f p);
     option(NeuralControl)
     {
@@ -205,7 +206,8 @@ public:
         }
         
         int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
-        
+        // double test_distance = getMinimumDis(0.0, 0.0, 10.0, 0.0, 5.0, 5.0);
+        //std::cout << "Test distance: " << test_distance << std::endl;
         
         int role; // the role our robot takes
         int count = 0; // the count of other robots have a greater measure
@@ -217,9 +219,10 @@ public:
             // Exclude the goal keeper and ourselves
             if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
                 float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+                // std::cout << "the distance of " << teammate.number << "is " << distance << std::endl;
                 
                 // if the teammate has a greater distance, update the count
-                if(ownDistance < distance) {
+                if(ownDistance >= distance) {
                     count++;
                 }
             }
@@ -421,9 +424,9 @@ public:
             }
             
             
-            std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
-            std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
-            std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
+            //std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
+            //std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
+            //std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -455,20 +458,10 @@ public:
                 robotPreCollision = preCollision(physicalRobot, predictedPosition[0], predictedPosition[1], obstacles);
             }
             
-            std::cout << "\n";
+            //std::cout << "\n";
         }
         
-        if (theGameState.isFreeKick()) {
-            if(robotPreCollision) {
-                std::cout << "Collision Avoidance activated during free kick" << std::endl;
-                std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
-                double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-                float x = 300.f * cos(angle);
-                float y = 300.f * sin(angle);
-                std::cout << "x: " << x << ", y: " << y << std::endl;
-                theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
-            }
-        } else {
+
             
             if (theFieldBall.timeSinceBallWasSeen > 4000)
             {
@@ -493,7 +486,7 @@ public:
                 double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
                 float x = 300.f * cos(angle);
                 float y = 300.f * sin(angle);
-                std::cout << "x: " << x << ", y: " << y << std::endl;
+                // std::cout << "x: " << x << ", y: " << y << std::endl;
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
                 
             }
@@ -516,7 +509,7 @@ public:
                 }
                 
             }
-        }
+        
         
         if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
             prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
@@ -617,7 +610,7 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
         intersect = (doIntersect(theRobotPose.translation, newVector, sbl, stl) || doIntersect(theRobotPose.translation, newVector, sbl, sbr) || doIntersect(theRobotPose.translation, newVector, sbr, str) || doIntersect(theRobotPose.translation, newVector, stl, str));
         intersect2 = (doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateCounterClockwise, stl, str));
         intersect3 = (doIntersect(theRobotPose.translation, rotateClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateClockwise, stl, str));
-        std::cout << "Distance between obstacle and Robot: " <<(theRobotPose.translation - obstaclePose).norm() << std::endl;
+        //std::cout << "Distance between obstacle and Robot: " <<(theRobotPose.translation - obstaclePose).norm() << std::endl;
         
         double angleRelativeToRobot = atan2( Obstacle[i].y - theRobotPose.translation.y(), Obstacle[i].x - theRobotPose.translation.x());
         if(angleRelativeToRobot<0){
@@ -640,7 +633,7 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
 }
 
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
-
+    
     for (auto & obstacle : theObstacleModel.obstacles)
     {
         if(!obstacle.isTeammate()){
@@ -650,8 +643,8 @@ void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstac
         
     }
     for(auto& teammate: theTeamData.teammates){
-        std::cout << "teammate number: " << teammate.number << std::endl;
-        std::cout << "teammate Position: " << teammate.theRobotPose.translation.x() << ", "<<teammate.theRobotPose.translation.y() << std::endl;
+        //std::cout << "teammate number: " << teammate.number << std::endl;
+        // std::cout << "teammate Position: " << teammate.theRobotPose.translation.x() << ", "<<teammate.theRobotPose.translation.y() << std::endl;
         ObstacleVector o{teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y(), true};
         Obstacle.push_back(o);
     }
@@ -731,4 +724,6 @@ Vector2f NeuralControlImpl::rotate_point(float cx,float cy,float angleDegree, Ve
     return Vector2f(px, py);
 }
 
+
 MAKE_SKILL_IMPLEMENTATION(NeuralControlImpl);
+
