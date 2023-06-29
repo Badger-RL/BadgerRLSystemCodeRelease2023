@@ -87,6 +87,7 @@ Environment environment(field_positions, observation_size, action_size);
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
 Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
+Algorithm defenderKickAlgorithm(policy_path, "DefenderKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
@@ -148,7 +149,7 @@ class NeuralControlImpl : public NeuralControlImplBase
      }
      else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3)
      {
-      algorithm = & defenderAlgorithm;
+      algorithm = & defenderKickAlgorithm;
 
      }
      else{
@@ -348,11 +349,20 @@ class NeuralControlImpl : public NeuralControlImplBase
       }
       else if(algorithm->getActionLength() == 4)
       {
+        if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0)
+        {
         theWalkToBallAndKickSkill({
         .targetDirection = 0_deg,
         .kickType = KickInfo::walkForwardsRightLong,
         .kickLength = 1000.f,
-      });
+
+        });
+        }
+        else{
+          theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+
+        }
+
       }
       else
       {
