@@ -6,6 +6,7 @@
  * @author Arne Hasselbring (the actual behavior is older)
  * @author John Balis
  * @author Chen Li
+ * @author Benjamin Hong
  */
 
 #include <CompiledNN/CompiledNN.h>
@@ -24,7 +25,6 @@
 #include "Representations/BehaviorControl/Libraries/LibWalk.h"
 #include "Representations/BehaviorControl/PathPlanner.h"
 #include "Representations/BehaviorControl/Skills.h"
-#include "Representations/Communication/TeamData.h"
 #include "Representations/BehaviorControl/StrategyStatus.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/BehaviorControl/FieldBall.h"
@@ -193,8 +193,8 @@ public:
     virtual bool preCollision(std::vector<ObstacleVector>& Obstacle, float predictedPosX, float predictedPosY, bool obstacle[]);
     virtual void addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle);
     virtual std::pair<int, int> startIndexOfLongestConsecutive0s(const bool data[], int length);
-    
     virtual Vector2f rotate_point(float cx,float cy,float angle, Vector2f p);
+    
     option(NeuralControl)
     {
         
@@ -481,7 +481,7 @@ public:
                 
             }
             else if(robotPreCollision){
-                std::cout << "Collision Avoidance activated" << std::endl;
+//                std::cout << "Collision Avoidance activated" << std::endl;
                 std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
                 double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
                 float x = 300.f * cos(angle);
@@ -594,18 +594,18 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
     bool intersect3 = false;
     bool withInRobotSquare = false;
     for(unsigned int i = 0; i < Obstacle.size(); i ++){
-        Vector2f stl(Obstacle[i].x + 250.f, Obstacle[i].y + 250.f);
-        Vector2f sbl(Obstacle[i].x - 250.f, Obstacle[i].y + 250.f);
-        Vector2f str(Obstacle[i].x + 250.f, Obstacle[i].y - 250.f);
-        Vector2f sbr(Obstacle[i].x - 250.f, Obstacle[i].y - 250.f);
+        Vector2f stl(Obstacle[i].x + 275.f, Obstacle[i].y + 275.f);
+        Vector2f sbl(Obstacle[i].x - 275.f, Obstacle[i].y + 275.f);
+        Vector2f str(Obstacle[i].x + 275.f, Obstacle[i].y - 275.f);
+        Vector2f sbr(Obstacle[i].x - 275.f, Obstacle[i].y - 275.f);
         Vector2f PredictedPoseVector(predictedPosX, predictedPosY);
         Vector2f obstaclePose(Obstacle[i].x, Obstacle[i].y);
         
         double dist = (theRobotPose.translation - PredictedPoseVector).norm();
         Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
-        Vector2f newVector = Vector2f(theRobotPose.translation.x() + unitVector.x()*100.f, theRobotPose.translation.y() + unitVector.y()*100.f);
-        Vector2f rotateCounterClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), 10, newVector);
-        Vector2f rotateClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), -10, newVector);
+        Vector2f newVector = Vector2f(theRobotPose.translation.x() + unitVector.x()*110.f, theRobotPose.translation.y() + unitVector.y()*110.f);
+        Vector2f rotateCounterClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), 15, newVector);
+        Vector2f rotateClockwise = rotate_point(theRobotPose.translation.x(), theRobotPose.translation.y(), -15, newVector);
         
         intersect = (doIntersect(theRobotPose.translation, newVector, sbl, stl) || doIntersect(theRobotPose.translation, newVector, sbl, sbr) || doIntersect(theRobotPose.translation, newVector, sbr, str) || doIntersect(theRobotPose.translation, newVector, stl, str));
         intersect2 = (doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateCounterClockwise, stl, str));
