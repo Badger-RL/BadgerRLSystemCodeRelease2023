@@ -11,3 +11,5 @@
 11. Robot jerseys (5 red, 5 white, 1 black)
 12. New whistles
 13. Poster with research contributions
+
+** Robot batteries must be removed and carried on for compliance with FAA regulations and safety **
