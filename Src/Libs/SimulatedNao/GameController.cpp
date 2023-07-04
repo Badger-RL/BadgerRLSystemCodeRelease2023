@@ -48,9 +48,9 @@ GameController::~GameController()
 void GameController::setTeamInfos(const std::array<uint8_t, 2>& teamNumbers, const std::array<Settings::TeamColor, 2>& teamColors)
 {
   gameControllerData.teams[0].teamNumber = teamNumbers[0];
-  gameControllerData.teams[0].teamColor = teamColors[0];
+  gameControllerData.teams[0].fieldPlayerColour = teamColors[0];
   gameControllerData.teams[1].teamNumber = teamNumbers[1];
-  gameControllerData.teams[1].teamColor = teamColors[1];
+  gameControllerData.teams[1].fieldPlayerColour = teamColors[1];
   gameControllerData.kickingTeam = teamNumbers[0];
   theSPLMessageHandler[0].startLocal(Settings::getPortForTeam(teamNumbers[0]), 12);
   theSPLMessageHandler[1].startLocal(Settings::getPortForTeam(teamNumbers[1]), 12);
@@ -187,7 +187,7 @@ bool GameController::competitionType7v7()
 {
   if(gameControllerData.state != STATE_INITIAL)
     return false;
-  gameControllerData.competitionType = COMPETITION_TYPE_7V7;
+  gameControllerData.competitionType = COMPETITION_TYPE_NORMAL;
   initTeams(7, 7, 1680);
   return true;
 }
