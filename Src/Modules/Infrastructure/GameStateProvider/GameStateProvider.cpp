@@ -313,7 +313,7 @@ void GameStateProvider::update(GameState& gameState)
       for(std::size_t i = 0; i < team.playerStates.size(); ++i)
         team.playerStates[i] = convertPenaltyToPlayerState(teamInfo.players[i].penalty);
       team.number = teamInfo.teamNumber;
-      team.color = static_cast<GameState::Team::Color>(teamInfo.teamColor);
+      team.color = static_cast<GameState::Team::Color>(teamInfo.fieldPlayerColour);
       team.score = teamInfo.score + (speculatingGoalFor ? 1 : 0);
       team.messageBudget = teamInfo.messageBudget;
     };
