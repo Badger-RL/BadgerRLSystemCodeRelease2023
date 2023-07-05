@@ -183,6 +183,7 @@ std::vector<ObstacleVector> simRobot2;
 std::vector<ObstacleVector> simRobot3;
 std::vector<ObstacleVector> simRobot4;
 std::vector<ObstacleVector> simRobot5;
+std::vector<Vector2f> simRobotDeadSpot[5];
 
 class NeuralControlImpl : public NeuralControlImplBase
 {
@@ -491,7 +492,10 @@ public:
                 
             }
             else{
-                
+                if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
+                    simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
+                }
+                simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
                 if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                 }
@@ -508,6 +512,23 @@ public:
                     std::cout << "unsupported action space" << std::endl;
                 }
                 
+                if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 5){
+                    simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+                    double meanX = 0;
+                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+                        meanX+=simRobotDeadSpot[theGameState.playerNumber-1][i].x();
+                    }
+                    meanX/=simRobotDeadSpot[theGameState.playerNumber-1].size();
+                    double std = 0;
+                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+                        std += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].x() - meanX, 2);
+                    }
+                    std = sqrt(std/simRobotDeadSpot[theGameState.playerNumber-1].size());
+                    while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
+                        simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
+                    }
+                    std::cout << "Standard Deviation of X: " << std::endl;
+                }
             }
         
         
