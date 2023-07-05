@@ -473,14 +473,29 @@ public:
                     0.0f}});
                 //std::cout << "Looking for ball" << std::endl;
             }
-            else if(RLConfig::shieldEnabled && shield)
-            {
+            else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
                 //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-                
-                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                    0.0f,
-                    0.0f}});
                 std::cout << "Shielding activated" << std::endl;
+
+                if (theGameState.playerNumber != 1){
+                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                        0.0f,
+                        0.0f}});
+                }
+                else{
+                        if (abs(theRobotPose.rotation) > .3)
+                        {
+                        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                        0.0f,
+                        0.0f}});
+                        }
+                        else{
+                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                        0.0f,
+                        0.0f}});
+                        }
+
+                }
                 
             }
             else if(robotPreCollision){
