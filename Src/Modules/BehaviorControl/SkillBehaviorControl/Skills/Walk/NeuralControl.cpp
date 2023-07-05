@@ -33,10 +33,12 @@
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/Modeling/GlobalTeammatesModel.h"
 #include "Representations/Modeling/ObstacleModel.h"
+#include "Representations/Modeling/TeammatesBallModel.h"
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/MotionControl/WalkingEngineOutput.h"
 #include "Representations/Sensing/ArmContactModel.h"
 #include "Representations/Sensing/FootBumperState.h"
+
 #include "Representations/Communication/TeamData.h"
 
 #include "Tools/Modeling/Obstacle.h"
@@ -136,6 +138,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
     CALLS(WalkAtRelativeSpeed),
     CALLS(WalkToPose),
     CALLS(WalkToBallAndKick),
+    REQUIRES(TeammatesBallModel),
     DEFINES_PARAMETERS(
                        {,
                            (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
@@ -216,19 +219,30 @@ public:
         theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
         float ownDistance = theBehaviorStatus.distance; // our own distance
         
-        // Iterate through all teammates and find out their distance measure
+        
+        /*
+         // Iterate through all teammates and find out their distance measure
+         for(auto & teammate : theTeamData.teammates) {
+         // Exclude the goal keeper and ourselves
+         if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
+         float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+         // std::cout << "the distance of " << teammate.number << "is " << distance << std::endl;
+         
+         // if the teammate has a greater distance, update the count
+         if(ownDistance >= distance) {
+         count++;
+         }
+         }
+         }
+         */
         for(auto & teammate : theTeamData.teammates) {
             // Exclude the goal keeper and ourselves
-            if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
-                float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
-                // std::cout << "the distance of " << teammate.number << "is " << distance << std::endl;
-                
-                // if the teammate has a greater distance, update the count
-                if(ownDistance >= distance) {
-                    count++;
-                }
+            if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
+                count+=1;
             }
         }
+        
+        
         
         // assign role based on num of robots closer
         if(count >= 2) {
@@ -445,7 +459,6 @@ public:
                 robotPreCollision = preCollision(physicalRobot, predictedPosition[0], predictedPosition[1], obstacles);
             }
             
-            //std::cout << "\n";
         }
 //        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
 //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
@@ -509,12 +522,12 @@ public:
                     // std::cout << "Action space 4" << std::endl;   
                     if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
                     {
-                    theWalkToBallAndKickSkill({
-                    .targetDirection = 0_deg,
-                    .kickType = KickInfo::walkForwardsRightLong,
-                    .kickLength = 1000.f,
-
-                    });
+                        theWalkToBallAndKickSkill({
+                            .targetDirection = 0_deg,
+                            .kickType = KickInfo::walkForwardsRightLong,
+                            .kickLength = 1000.f,
+                            
+                        });
                     }
                     else if (role == 2){
                         float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f);
@@ -527,13 +540,22 @@ public:
                         theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
 
                     }
-
+                    
                 }
                 else
                 {
                     std::cout << "unsupported action space" << std::endl;
                 }
             }
+            
+            
+            
+        }
+        
+        
+        
+        
+        
         
         
         if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
