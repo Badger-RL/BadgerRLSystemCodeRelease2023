@@ -14,7 +14,8 @@
 #include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/Modeling/RobotPose.h"
 #include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
-
+#include <stdio.h>
+#include <iostream>
 SKILL_IMPLEMENTATION(PlayBallImpl,
 {,
   IMPLEMENTS(PlayBall),
@@ -44,7 +45,6 @@ class PlayBallImpl : public PlayBallImplBase
   {
     const bool isLeft = theFieldBall.positionOnField.y() > 0.f;
     const Vector2f usedGoalPost(std::min(theFieldDimensions.xPosOwnGoalPost, theFieldBall.positionOnField.x() - theFieldDimensions.goalPostRadius), isLeft ? theFieldDimensions.yPosLeftGoal : theFieldDimensions.yPosRightGoal);
-
     initial_state(executeSkillRequest)
     {
       transition

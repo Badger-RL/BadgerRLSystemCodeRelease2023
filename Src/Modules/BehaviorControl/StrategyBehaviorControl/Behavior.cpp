@@ -789,7 +789,7 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
 
   const Vector2f target(0.0,0.0);
   if(theGameState.isFreeKick()){
-    return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
+     return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
   }
   return SkillRequest::Builder::neuralControl(target);
 

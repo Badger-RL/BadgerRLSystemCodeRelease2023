@@ -13,7 +13,8 @@
 #include "Debugging/Modify.h"
 #include <array>
 #include <cmath>
-
+#include <stdio.h>
+#include <iostream>
 void PlayBall::reset()
 {
   lastPassTarget = 0;
@@ -27,7 +28,8 @@ void PlayBall::preProcess()
 
 SkillRequest PlayBall::execute(const Agent& self, const Agents& teammates)
 {
-  return p.ignoreObstacles ? executeLegacy(self, teammates) : smashOrPass(self, teammates);
+    const Vector2f target(0.0,0.0);
+    return SkillRequest::Builder::neuralControl(target);
 }
 
 SkillRequest PlayBall::smashOrPass(const Agent& self, const Agents& teammates)

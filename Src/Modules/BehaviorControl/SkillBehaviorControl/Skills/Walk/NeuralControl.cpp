@@ -466,9 +466,7 @@ public:
 //        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
 //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
 //        }
-//        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
 //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
-
             if (theFieldBall.timeSinceBallWasSeen > 4000)
             {
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
