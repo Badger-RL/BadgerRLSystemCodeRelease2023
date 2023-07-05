@@ -100,6 +100,7 @@ Environment environment(field_positions, observation_size, action_size);
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm goalKeeperKickAlgorithm(policy_path, "GoalKeeperKickPolicy");
 Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
 Algorithm defenderKickAlgorithm(policy_path, "DefenderKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
@@ -242,7 +243,7 @@ public:
             // Make sure Goal keeper keeps its role and assign new roles
             if(theGameState.playerNumber == 1) {
                 std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
-                algorithm = & goalKeeperAlgorithm;
+                algorithm = & goalKeeperKickAlgorithm;
                 
                 // store previous role separately for each robot.
                 if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -262,7 +263,7 @@ public:
                 }
             } else {
                 std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
-                algorithm = & defenderAlgorithm;
+                algorithm = & defenderKickAlgorithm;
                 
                 // store previous role separately for each robot.
                 if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -277,7 +278,7 @@ public:
         if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
             // Assign role based on previous roles
             if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
-                algorithm = & goalKeeperAlgorithm;
+                algorithm = & goalKeeperKickAlgorithm;
             } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
                 algorithm = & attackerAlgorithm;
             } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
@@ -538,7 +539,7 @@ public:
                     while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
                         simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
                     }
-                    std::cout << "Standard Deviation of X: " << std::endl;
+                    //std::cout << "Standard Deviation of X: " << std::endl;
                 }
             }
         
