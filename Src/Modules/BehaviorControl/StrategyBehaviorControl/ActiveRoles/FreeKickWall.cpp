@@ -65,7 +65,7 @@ SkillRequest FreeKickWall::execute(const Agent&, const Agents&)
         double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
         float x = 100.f * cos(angle);
         float y = 100.f * sin(angle);
-        std::cout << "Collision" << std::endl;
+//        std::cout << "Collision" << std::endl;
         return SkillRequest::Builder::walkTo(Pose2f(angle ,(Vector2f(x,y) + currentTarget)));
     }
     return SkillRequest::Builder::walkTo(Pose2f((ballPosition - currentTarget).angle(), currentTarget));
