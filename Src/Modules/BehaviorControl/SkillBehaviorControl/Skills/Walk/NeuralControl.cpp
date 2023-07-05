@@ -100,7 +100,9 @@ Environment environment(field_positions, observation_size, action_size);
 
 Algorithm attackerAlgorithm(policy_path, "AttackerPolicy");
 Algorithm goalKeeperAlgorithm(policy_path, "GoalKeeperPolicy");
+Algorithm goalKeeperKickAlgorithm(policy_path, "GoalKeeperKickPolicy");
 Algorithm attackerKickAlgorithm(policy_path, "AttackerKickPolicy");
+Algorithm defenderKickAlgorithm(policy_path, "DefenderKickPolicy");
 Algorithm defenderAlgorithm(policy_path, "DefenderPolicy");
 Algorithm CQLAttackerAlgorithm(policy_path, "CQLAttackerPolicy");
 
@@ -241,7 +243,7 @@ public:
             // Make sure Goal keeper keeps its role and assign new roles
             if(theGameState.playerNumber == 1) {
                 std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
-                algorithm = & goalKeeperAlgorithm;
+                algorithm = & goalKeeperKickAlgorithm;
                 
                 // store previous role separately for each robot.
                 if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -261,7 +263,7 @@ public:
                 }
             } else {
                 std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
-                algorithm = & defenderAlgorithm;
+                algorithm = & defenderKickAlgorithm;
                 
                 // store previous role separately for each robot.
                 if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
@@ -276,11 +278,11 @@ public:
         if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
             // Assign role based on previous roles
             if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
-                algorithm = & goalKeeperAlgorithm;
+                algorithm = & goalKeeperKickAlgorithm;
             } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
                 algorithm = & attackerAlgorithm;
             } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
-                algorithm = & defenderAlgorithm;
+                algorithm = & defenderKickAlgorithm;
             }
         } else {
             algorithm = & attackerAlgorithm;
@@ -471,14 +473,29 @@ public:
                     0.0f}});
                 //std::cout << "Looking for ball" << std::endl;
             }
-            else if(RLConfig::shieldEnabled && shield)
-            {
+            else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
                 //std::cout << "HEURISTIC ACTIVATED" << std::endl;
-                
-                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                    0.0f,
-                    0.0f}});
                 std::cout << "Shielding activated" << std::endl;
+
+                if (theGameState.playerNumber != 1){
+                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                        0.0f,
+                        0.0f}});
+                }
+                else{
+                        if (abs(theRobotPose.rotation) > .3)
+                        {
+                        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                        0.0f,
+                        0.0f}});
+                        }
+                        else{
+                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                        0.0f,
+                        0.0f}});
+                        }
+
+                }
                 
             }
             else if(robotPreCollision){
@@ -501,11 +518,21 @@ public:
                 }
                 else if(algorithm->getActionLength() == 4)
                 {
+                    
+                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0)
+                    {
                     theWalkToBallAndKickSkill({
-                        .targetDirection = 0_deg,
-                        .kickType = KickInfo::walkForwardsRightLong,
-                        .kickLength = 1000.f,
+                    .targetDirection = 0_deg,
+                    .kickType = KickInfo::walkForwardsRightLong,
+                    .kickLength = 1000.f,
+
                     });
+                    }
+                    else{
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+
+                    }
+
                 }
                 else
                 {
@@ -527,7 +554,7 @@ public:
                     while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
                         simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
                     }
-                    std::cout << "Standard Deviation of X: " << std::endl;
+                    //std::cout << "Standard Deviation of X: " << std::endl;
                 }
             }
         
