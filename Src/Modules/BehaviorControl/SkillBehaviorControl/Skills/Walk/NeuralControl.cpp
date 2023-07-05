@@ -32,10 +32,12 @@
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/Modeling/GlobalTeammatesModel.h"
 #include "Representations/Modeling/ObstacleModel.h"
+#include "Representations/Modeling/TeammatesBallModel.h"
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/MotionControl/WalkingEngineOutput.h"
 #include "Representations/Sensing/ArmContactModel.h"
 #include "Representations/Sensing/FootBumperState.h"
+
 #include "Representations/Communication/TeamData.h"
 
 #include "Tools/Modeling/Obstacle.h"
@@ -137,6 +139,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
     CALLS(WalkAtRelativeSpeed),
     CALLS(WalkToPose),
     CALLS(WalkToBallAndKick),
+    REQUIRES(TeammatesBallModel),
     DEFINES_PARAMETERS(
                        {,
                            (float)(1000.f) switchToPathPlannerDistance, /**< If the target is further away than this distance, the path planner is used. */
@@ -217,6 +220,8 @@ public:
         theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
         float ownDistance = theBehaviorStatus.distance; // our own distance
         
+
+        /*
         // Iterate through all teammates and find out their distance measure
         for(auto & teammate : theTeamData.teammates) {
             // Exclude the goal keeper and ourselves
@@ -230,6 +235,15 @@ public:
                 }
             }
         }
+        */
+        for(auto & teammate : theTeamData.teammates) {
+            // Exclude the goal keeper and ourselves
+            if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
+              count+=1;
+            }
+        }
+
+
         
         // assign role based on num of robots closer
         if(count >= 2) {
@@ -467,7 +481,8 @@ public:
 //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
 //        }
 //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
-            if (theFieldBall.timeSinceBallWasSeen > 4000)
+
+            if (theFieldBall.timeSinceBallWasSeen > 4000 && !theTeammatesBallModel.isValid)
             {
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                     0.0f,
@@ -475,7 +490,7 @@ public:
                 //std::cout << "Looking for ball" << std::endl;
             }
             else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
-                std::cout << "Shielding activated" << std::endl;
+                //std::cout << "Shielding activated" << std::endl;
                 if (theGameState.playerNumber != 1){
                     if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
                         theWalkAtRelativeSpeedSkill({.speed = {0.0f,
@@ -525,7 +540,7 @@ public:
                 else if(algorithm->getActionLength() == 4)
                 {
                     
-                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0)
+                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 600.0)
                     {
                     theWalkToBallAndKickSkill({
                     .targetDirection = 0_deg,
