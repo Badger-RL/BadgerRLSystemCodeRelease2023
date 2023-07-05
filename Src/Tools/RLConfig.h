@@ -16,7 +16,7 @@
 ////////////////////////////////////////// IMPORTANT //////////////////////////////////////////////
 // BEFORE COMPILING, SET BUILD_MAC_NAO TO 1 FOR NAO, 0 FOR MAC, 2 FOR ALL ELSE (LINUX)
 
-#define BUILD_MAC_NAO 2 // 1 for NAO, 0 for MAC
+#define BUILD_MAC_NAO 1 // 1 for NAO, 0 for MAC
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -34,7 +34,7 @@
 
 #ifndef BUILD_MAC_FLAG // LINUX
 #include <linux/limits.h>
-#endif 
+#endif
 #include <mutex>
 
 #define PATH_MAX 4096
