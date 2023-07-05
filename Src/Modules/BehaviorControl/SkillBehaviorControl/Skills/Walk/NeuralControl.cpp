@@ -414,7 +414,7 @@ public:
         if (RLConfig::shieldEnabled)
         {
             
-            if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
+            if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3050 || predictedPosition[1] < -3050){
                 shield = true;
             }
             if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
@@ -463,9 +463,12 @@ public:
             
             //std::cout << "\n";
         }
-        
+//        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+//            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
+//        }
+//        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
+//        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
 
-            
             if (theFieldBall.timeSinceBallWasSeen > 4000)
             {
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
@@ -474,25 +477,29 @@ public:
                 //std::cout << "Looking for ball" << std::endl;
             }
             else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
-                //std::cout << "HEURISTIC ACTIVATED" << std::endl;
                 std::cout << "Shielding activated" << std::endl;
-
                 if (theGameState.playerNumber != 1){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                        0.0f,
-                        0.0f}});
+                    if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
+                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                            -1*(predictedPosition[0] - theRobotPose.translation.x()),
+                            -1*(predictedPosition[1] - theRobotPose.translation.y())}});
+                    } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                            (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
+                            (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
+                    }
                 }
                 else{
                         if (abs(theRobotPose.rotation) > .3)
                         {
-                        theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                        0.0f,
-                        0.0f}});
+                            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                                0.0f,
+                                0.0f}});
                         }
                         else{
                         theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        0.0f,
-                        0.0f}});
+                            0.0f,
+                            0.0f}});
                         }
 
                 }
@@ -513,6 +520,7 @@ public:
                     simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
                 }
                 simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+                
                 if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                 }
@@ -538,24 +546,26 @@ public:
                 {
                     std::cout << "unsupported action space" << std::endl;
                 }
-                
-                if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 5){
-                    simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-                    double meanX = 0;
-                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
-                        meanX+=simRobotDeadSpot[theGameState.playerNumber-1][i].x();
-                    }
-                    meanX/=simRobotDeadSpot[theGameState.playerNumber-1].size();
-                    double std = 0;
-                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
-                        std += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].x() - meanX, 2);
-                    }
-                    std = sqrt(std/simRobotDeadSpot[theGameState.playerNumber-1].size());
-                    while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
-                        simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
-                    }
-                    //std::cout << "Standard Deviation of X: " << std::endl;
-                }
+//                if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 5){
+//                    simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+//                    double meanX = 0;
+//                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+//                        meanX+=simRobotDeadSpot[theGameState.playerNumber-1][i].x();
+//                    }
+//                    meanX/=simRobotDeadSpot[theGameState.playerNumber-1].size();
+//                    double std = 0;
+//                    for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+//                        std += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].x() - meanX, 2);
+//                    }
+//                    std = sqrt(std/simRobotDeadSpot[theGameState.playerNumber-1].size());
+//                    while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
+//                        simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
+//                    }
+//                    if(std < 0.30 ){
+//                        std::cout << "Robot " << theGameState.playerNumber << " is at a dead spot" << std::endl;
+//                        std::cout << "Role: " << preRole[std::to_string(theGameState.playerNumber)] << std::endl;
+//                    }
+//                }
             }
         
         

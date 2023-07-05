@@ -51,23 +51,23 @@ SkillRequest FreeKickWall::execute(const Agent&, const Agents&)
     bool obstacles[8] = {false, false, false, false,false, false, false,false};
     addObstaclesSimRobot(simRobot);
     robotPreCollision = preCollision(simRobot,  currentTarget.x(), currentTarget.y(), obstacles);
-    if(robotPreCollision){
-        double angleRelativeToRobot = atan2(ballPosition.y() - theRobotPose.translation.y(), ballPosition.x() - theRobotPose.translation.x());
-        obstacles[(int)(angleRelativeToRobot/(PI/4))] = true;
-        obstacles[(int) (((angleRelativeToRobot + PI/4))/(PI/4)) % 8] = true;
-        if((angleRelativeToRobot - PI/4) < 0){
-            obstacles[(int)((2 * PI -(angleRelativeToRobot - PI/4))/(PI/4))] = true;
-        }
-        if((angleRelativeToRobot - PI/4 - PI/4) < 0){
-            obstacles[(int)((2 * PI -(angleRelativeToRobot - PI/4 - PI/4))/(PI/4))] = true;
-        }
-        std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
-        double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-        float x = 100.f * cos(angle);
-        float y = 100.f * sin(angle);
-//        std::cout << "Collision" << std::endl;
-        return SkillRequest::Builder::walkTo(Pose2f(angle ,(Vector2f(x,y) + currentTarget)));
-    }
+//    if(robotPreCollision){
+//        double angleRelativeToRobot = atan2(ballPosition.y() - theRobotPose.translation.y(), ballPosition.x() - theRobotPose.translation.x());
+//        obstacles[(int)(angleRelativeToRobot/(PI/4))] = true;
+//        obstacles[(int) (((angleRelativeToRobot + PI/4))/(PI/4)) % 8] = true;
+//        if((angleRelativeToRobot - PI/4) < 0){
+//            obstacles[(int)((2 * PI -(angleRelativeToRobot - PI/4))/(PI/4))] = true;
+//        }
+//        if((angleRelativeToRobot - PI/4 - PI/4) < 0){
+//            obstacles[(int)((2 * PI -(angleRelativeToRobot - PI/4 - PI/4))/(PI/4))] = true;
+//        }
+//        std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+//        double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+//        float x = 100.f * cos(angle);
+//        float y = 100.f * sin(angle);
+////        std::cout << "Collision" << std::endl;
+//        return SkillRequest::Builder::walkTo(Pose2f(angle ,(Vector2f(x,y) + currentTarget)));
+//    }
     return SkillRequest::Builder::walkTo(Pose2f((ballPosition - currentTarget).angle(), currentTarget));
 }
 
