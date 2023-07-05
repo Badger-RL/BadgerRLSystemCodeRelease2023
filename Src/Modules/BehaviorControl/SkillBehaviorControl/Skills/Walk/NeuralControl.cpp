@@ -187,6 +187,7 @@ std::vector<ObstacleVector> simRobot2;
 std::vector<ObstacleVector> simRobot3;
 std::vector<ObstacleVector> simRobot4;
 std::vector<ObstacleVector> simRobot5;
+std::vector<Vector2f> simRobotDeadSpot[5];
 
 
 class NeuralControlImpl : public NeuralControlImplBase
@@ -334,27 +335,27 @@ public:
         }
         else if (role == 2) {
             inputObservation = {};
-
+            
             // origin,
             // goal,
             // other robots,
             // ball
-
+            
             // agent location array
             std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
             // ball location array
             std::vector<float> ball_loc = {theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y()};
-
+            
             std::vector<float> origin_ref = get_relative_observation(agent_loc, {0, 0});
             std::vector<float> goal_ref = get_relative_observation(agent_loc, {4800, 0});
-
+            
             std::vector<float> ball_ref = get_relative_observation(agent_loc, ball_loc);
-
-
+            
+            
             inputObservation.insert(inputObservation.end(), origin_ref.begin(), origin_ref.end());
             inputObservation.insert(inputObservation.end(), goal_ref.begin(), goal_ref.end());
             inputObservation.insert(inputObservation.end(), ball_ref.begin(), ball_ref.end());
-
+            
         }
         else{
             inputObservation = rawObservation;
@@ -460,119 +461,163 @@ public:
             }
             
         }
-//        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-//            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
-//        }
-//        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
-//        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
-
-            if (theFieldBall.timeSinceBallWasSeen > 4000)
-            {
-                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                    0.0f,
-                    0.0f}});
-                //std::cout << "Looking for ball" << std::endl;
-            }
-            else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
-                // std::cout << "Shielding activated" << std::endl;
-                if (theGameState.playerNumber != 1){
-                    if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
-                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                            -1*(predictedPosition[0] - theRobotPose.translation.x()),
-                            -1*(predictedPosition[1] - theRobotPose.translation.y())}});
-                    } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                            (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
-                            (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
-                    }
-                }
-                else{
-                        if (abs(theRobotPose.rotation) > .3)
-                        {
-                            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                                0.0f,
-                                0.0f}});
-                        }
-                        else{
-                        theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                            0.0f,
-                            0.0f}});
-                        }
-
-                }
+        //        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+        //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
+        //        }
+        //        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
+        //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
+        
+        bool deadSpot = false;
+        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
+            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
+        }
+        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 5){
+            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+            double meanX = 0;
+            double meanY = 0;
+            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+                meanX+=simRobotDeadSpot[theGameState.playerNumber-1][i].x();
+                meanY+=simRobotDeadSpot[theGameState.playerNumber-1][i].y();
                 
             }
-            else if(robotPreCollision){
-//                std::cout << "Collision Avoidance activated" << std::endl;
-                std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
-                double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
-                float x = 300.f * cos(angle);
-                float y = 300.f * sin(angle);
-                // std::cout << "x: " << x << ", y: " << y << std::endl;
-                theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
+            meanX/=simRobotDeadSpot[theGameState.playerNumber-1].size();
+            meanY/=simRobotDeadSpot[theGameState.playerNumber-1].size();
+            
+            double stdX = 0;
+            double stdY = 0;
+            
+            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
+                stdX += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].x() - meanX, 2);
+                stdY += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].y() - meanY, 2);
                 
             }
-            else{
-                
-                if (algorithm->getActionLength() == 3){
-                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-                }
-                else if(algorithm->getActionLength() == 4)
-                {
-                    // std::cout << "Action space 4" << std::endl;   
-                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
-                    {
-                        theWalkToBallAndKickSkill({
-                            .targetDirection = 0_deg,
-                            .kickType = KickInfo::walkForwardsRightLong,
-                            .kickLength = 1000.f,
-                            
-                        });
-                    }
-                    else if (role == 2){
-                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f);
-                        float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f);
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
-
-                         theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
-                    }
-                    else{
-                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-
-                    }
-                    
-                }
-                else
-                {
-                    std::cout << "unsupported action space" << std::endl;
-                }
+            
+            stdX = sqrt(stdX/simRobotDeadSpot[theGameState.playerNumber-1].size());
+            stdY = sqrt(stdY/simRobotDeadSpot[theGameState.playerNumber-1].size());
+            
+            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
+                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
             }
             
             
             
+            // Detected Dead Spots
+            if(stdX < 0.30 && (json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2 && stdY < 0.30){
+                deadSpot = true;
+            }
         }
         
         
         
-        
-        
-        
-        
-        if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
-            prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
+        if (theFieldBall.timeSinceBallWasSeen > 4000)
+        {
+            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                0.0f,
+                0.0f}});
+            //std::cout << "Looking for ball" << std::endl;
+        }
+        else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
+            // std::cout << "Shielding activated" << std::endl;
+            if (theGameState.playerNumber != 1){
+                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
+                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
+                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
+                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
+                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
+                }
+            }
+            else{
+                if (abs(theRobotPose.rotation) > .3)
+                {
+                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                        0.0f,
+                        0.0f}});
+                }
+                else{
+                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                        0.0f,
+                        0.0f}});
+                }
+                
+            }
+            
+        }
+        else if(robotPreCollision){
+            //                std::cout << "Collision Avoidance activated" << std::endl;
+            std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
+            double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
+            float x = 300.f * cos(angle);
+            float y = 300.f * sin(angle);
+            // std::cout << "x: " << x << ", y: " << y << std::endl;
+            theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
         }
         else{
-            prevObservationData[std::to_string(theGameState.playerNumber)] = data_transfer.vectToJSON(rawObservation);
+            if (algorithm->getActionLength() == 3){
+                theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+            }
+            else if(algorithm->getActionLength() == 4)
+            {
+                // std::cout << "Action space 4" << std::endl;
+                if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
+                {
+                    theWalkToBallAndKickSkill({
+                        .targetDirection = 0_deg,
+                        .kickType = KickInfo::walkForwardsRightLong,
+                        .kickLength = 1000.f,
+                        
+                    });
+                }
+                else if (role == 2){
+                    float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
+                    float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
+                    if (action_1 > 0){
+                        action_1 = action_1 * 1.6 + 0.2f;
+                    }
+                    float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                    
+                    theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                }
+                else{
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                    
+                }
+                
+            }
+            else
+            {
+                std::cout << "unsupported action space" << std::endl;
+            }
         }
         
         
-        timeData[std::to_string(theGameState.playerNumber)] = timestep + 1;
         
-        
-        cognitionLock.unlock();
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
+        prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
         
     }
+    else{
+        prevObservationData[std::to_string(theGameState.playerNumber)] = data_transfer.vectToJSON(rawObservation);
+    }
+    
+    
+    timeData[std::to_string(theGameState.playerNumber)] = timestep + 1;
+    
+    
+    cognitionLock.unlock();
+}
 };
 
 
