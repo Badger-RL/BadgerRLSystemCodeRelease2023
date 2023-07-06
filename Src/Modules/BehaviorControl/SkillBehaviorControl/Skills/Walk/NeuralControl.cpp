@@ -217,11 +217,6 @@ public:
         
         int role; // the role our robot takes
         
-        
-
-        
-        
-        
         // assign role based on num of robots closer
         if(theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
             // Defender
@@ -238,11 +233,6 @@ public:
             algorithm = & attackerAlgorithm;
 
         }
-
-        
-        
- 
-    
         
         if (algorithm->getCollectNewPolicy()) {
             algorithm->waitForNewPolicy();
@@ -438,10 +428,60 @@ public:
         
         if (theFieldBall.timeSinceBallWasSeen > 10000)
         {
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
-            //std::cout << "Looking for ball" << std::endl;
+            // Spots to walk to when ball is not seen:
+            // Highest attacker = (500, 0)
+            // Lowest attacker = (0, 0)
+            // Highest defender = (-2000, 500)
+            // Lowest defender = (-2000, -500)
+            // Goalkeeper = (-4500, 0)
+            
+            float lostBallPositions[5][2] = {{500, 0}, {0, 0}, {-2000, 500}, {-2000, -500}, {-4500, 0}};
+
+            // Position variable
+            float position[2];
+
+            // Calculate using role, which spot to walk to
+            if (role == 2) {
+                // Attacker
+                // Find if we are the highest or lowest attacker
+                if (count == 0) {
+                    // higher
+                    position[0] = lostBallPositions[0][0];
+                    position[1] = lostBallPositions[0][1];
+                }
+                else {
+                    // lower
+                    position[0] = lostBallPositions[1][0];
+                    position[1] = lostBallPositions[1][1];
+                }
+            }
+            else if (role == 3) {
+                // Defender
+                // Find if we are the highest or lowest defender
+                if (count == 0) {
+                    // higher
+                    position[0] = lostBallPositions[2][0];
+                    position[1] = lostBallPositions[2][1];
+                }
+                else {
+                    // lower
+                    position[0] = lostBallPositions[3][0];
+                    position[1] = lostBallPositions[3][1];
+                }
+            }
+            else {
+                // Goalkeeper
+                position[0] = lostBallPositions[4][0];
+                position[1] = lostBallPositions[4][1];
+            }
+            
+            // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
+            float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
+            float x_pos = cos(angle_pos);
+            float y_pos = sin(angle_pos);
+
+            // Walk to position
+            theWalkAtRelativeSpeedSkill({.speed = {0.0f, x_pos, y_pos}});
         }
         else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
             // std::cout << "Shielding activated" << std::endl;
