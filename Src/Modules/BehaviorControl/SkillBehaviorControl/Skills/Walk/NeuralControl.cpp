@@ -18,6 +18,7 @@
 #include "Tools/RL/RLAlg.h"
 #include "Tools/RL/RLData.h"
 #include "Tools/RL/RLEnv.h"
+#include "Tools/RL/ObsTools.h"
 
 #include "Tools/json.h"
 
@@ -62,8 +63,6 @@
 
 int observation_size = 12;
 int action_size = 3;
-
-
 
 
 //we keep track of timesteps separately for each robot, using this json object
@@ -190,6 +189,7 @@ std::vector<ObstacleVector> simRobot4;
 std::vector<ObstacleVector> simRobot5;
 std::vector<Vector2f> simRobotDeadSpot[5];
 
+
 class NeuralControlImpl : public NeuralControlImplBase
 {
 public:
@@ -247,8 +247,10 @@ public:
         
         // assign role based on num of robots closer
         if(count >= 2) {
+            // Defender
             role = 3;
         } else {
+            // Attacker
             role = 2;
         }
         
@@ -256,7 +258,7 @@ public:
         if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
             // Make sure Goal keeper keeps its role and assign new roles
             if(theGameState.playerNumber == 1) {
-                std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
+                // std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & goalKeeperKickAlgorithm;
                 
                 // store previous role separately for each robot.
@@ -266,7 +268,7 @@ public:
                     preRole[std::to_string(theGameState.playerNumber)] = 1;
                 }
             } else if(role == 2) {
-                std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
+                // std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & attackerAlgorithm;
                 
                 // store previous role separately for each robot.
@@ -276,7 +278,7 @@ public:
                     preRole[std::to_string(theGameState.playerNumber)] = 2;
                 }
             } else {
-                std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
+                // std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & defenderKickAlgorithm;
                 
                 // store previous role separately for each robot.
@@ -301,47 +303,6 @@ public:
         } else {
             algorithm = & attackerAlgorithm;
         }
-        
-        
-        /*
-         if(algorithm == & goalKeeperAlgorithm) {
-         std::cout << "robot" << theGameState.playerNumber << "is a goal keeper" << std::endl;
-         } else if(algorithm == & defenderAlgorithm) {
-         std::cout << "robot" << theGameState.playerNumber << "is a defender" << std::endl;
-         } else {
-         std::cout << "robot" << theGameState.playerNumber << "is a attacker" << std::endl;
-         }
-         */
-        /*
-         
-         for(auto & teammate : theTeamData.teammates) {
-         if(teammate.number != theGameState.playerNumber) {
-         if(teammate.theBehaviorStatus.roles == 3) {
-         defenderCount++;
-         } else if(teammate.theBehaviorStatus.roles == 2) {
-         attackerCount++;
-         }
-         }
-         }
-         if(attackerCount >= 3 && algorithm == & attackerAlgorithm) {
-         algorithm = & defenderAlgorithm;
-         theBehaviorStatus.roles = 3;
-         
-         if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
-         preRole.insert(std::to_string(theGameState.playerNumber), 3);
-         } else {
-         preRole[std::to_string(theGameState.playerNumber)] = 3;
-         }
-         } else if ((defenderCount >= 3 && algorithm == & defenderAlgorithm) || attackerCount == 0) {
-         algorithm = & attackerAlgorithm;
-         theBehaviorStatus.roles = 2;
-         
-         if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
-         preRole.insert(std::to_string(theGameState.playerNumber), 2);
-         } else {
-         preRole[std::to_string(theGameState.playerNumber)] = 2;
-         }
-         } */
         
         
         if (algorithm->getCollectNewPolicy()) {
@@ -369,8 +330,32 @@ public:
         
         std::vector<float> inputObservation;
         
-        if (RLConfig::normalization) {
+        if (RLConfig::normalization && role != 2) {
             inputObservation = algorithm->normalizeObservation(rawObservation);
+        }
+        else if (role == 2) {
+            inputObservation = {};
+            
+            // origin,
+            // goal,
+            // other robots,
+            // ball
+            
+            // agent location array
+            std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
+            // ball location array
+            std::vector<float> ball_loc = {theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y()};
+            
+            std::vector<float> origin_ref = get_relative_observation(agent_loc, {0, 0});
+            std::vector<float> goal_ref = get_relative_observation(agent_loc, {4800, 0});
+            
+            std::vector<float> ball_ref = get_relative_observation(agent_loc, ball_loc);
+            
+            
+            inputObservation.insert(inputObservation.end(), origin_ref.begin(), origin_ref.end());
+            inputObservation.insert(inputObservation.end(), goal_ref.begin(), goal_ref.end());
+            inputObservation.insert(inputObservation.end(), ball_ref.begin(), ball_ref.end());
+            
         }
         else{
             inputObservation = rawObservation;
@@ -476,6 +461,11 @@ public:
             }
             
         }
+        //        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+        //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
+        //        }
+        //        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
+        //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
         
         bool deadSpot = false;
         if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
@@ -502,6 +492,7 @@ public:
                 stdY += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].y() - meanY, 2);
                 
             }
+            
             stdX = sqrt(stdX/simRobotDeadSpot[theGameState.playerNumber-1].size());
             stdY = sqrt(stdY/simRobotDeadSpot[theGameState.playerNumber-1].size());
             
@@ -518,14 +509,16 @@ public:
         }
         
         
+        
         if (theFieldBall.timeSinceBallWasSeen > 4000)
         {
             theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                 0.0f,
                 0.0f}});
+            //std::cout << "Looking for ball" << std::endl;
         }
         else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
-            //std::cout << "Shielding activated" << std::endl;
+            // std::cout << "Shielding activated" << std::endl;
             if (theGameState.playerNumber != 1){
                 if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
                     theWalkAtRelativeSpeedSkill({.speed = {0.0f,
@@ -563,68 +556,68 @@ public:
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
         }
-        
-        
         else{
-            if(deadSpot){
-                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                    theFieldBall.recentBallPositionOnField().x(),
-                    theFieldBall.recentBallPositionOnField().y()}});
+            if (algorithm->getActionLength() == 3){
+                theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
             }
-            else{
-                
-                if (algorithm->getActionLength() == 3){
-                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-                }
-                else if(algorithm->getActionLength() == 4)
+            else if(algorithm->getActionLength() == 4)
+            {
+                // std::cout << "Action space 4" << std::endl;
+                if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
                 {
-                    
-                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 600.0)
-                    {
-                        theWalkToBallAndKickSkill({
-                            .targetDirection = 0_deg,
-                            .kickType = KickInfo::walkForwardsRightLong,
-                            .kickLength = 1000.f,
-                            
-                        });
-                    }
-                    else{
-                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                    theWalkToBallAndKickSkill({
+                        .targetDirection = 0_deg,
+                        .kickType = KickInfo::walkForwardsRightLong,
+                        .kickLength = 1000.f,
                         
+                    });
+                }
+                else if (role == 2){
+                    float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
+                    float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
+                    if (action_1 > 0){
+                        action_1 = action_1 * 1.6 + 0.2f;
                     }
+                    float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                    
+                    theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                }
+                else{
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                     
                 }
-                else
-                {
-                    std::cout << "unsupported action space" << std::endl;
-                }
+                
             }
-            
-            
-            
+            else
+            {
+                std::cout << "unsupported action space" << std::endl;
+            }
         }
         
         
         
-        
-        
-        
-        
-        if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
-            prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
-            
-        }
-        else{
-            prevObservationData[std::to_string(theGameState.playerNumber)] = data_transfer.vectToJSON(rawObservation);
-        }
-        
-        
-        timeData[std::to_string(theGameState.playerNumber)] = timestep + 1;
-        
-        
-        cognitionLock.unlock();
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
+        prevObservationData.insert(std::to_string(theGameState.playerNumber), data_transfer.vectToJSON(rawObservation));
         
     }
+    else{
+        prevObservationData[std::to_string(theGameState.playerNumber)] = data_transfer.vectToJSON(rawObservation);
+    }
+    
+    
+    timeData[std::to_string(theGameState.playerNumber)] = timestep + 1;
+    
+    
+    cognitionLock.unlock();
+}
 };
 
 
