@@ -576,7 +576,7 @@ public:
                     float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                     float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
                     if (action_1 > 0){
-                        action_1 = action_1 * 1.6 + 0.2f;
+                        action_1 = action_1 * 1.6 + 0.2;
                     }
                     float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
                     

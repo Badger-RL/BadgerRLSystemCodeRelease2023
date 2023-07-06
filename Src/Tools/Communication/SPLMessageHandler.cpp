@@ -46,6 +46,10 @@ void SPLMessageHandler::send()
   if(!port || (!targetSet && !(trySetWifiTarget(), targetSet)))
     return;
 
+  if(offsetof(RoboCup::SPLStandardMessage, data) + out.numOfDataBytes > 128){
+    return;
+  }
+
   socket.write(reinterpret_cast<char*>(&out), offsetof(RoboCup::SPLStandardMessage, data) + out.numOfDataBytes);
 }
 
