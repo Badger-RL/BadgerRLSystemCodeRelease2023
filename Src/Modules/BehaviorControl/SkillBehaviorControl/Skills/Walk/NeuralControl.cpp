@@ -75,7 +75,9 @@ std::vector<int> robotNum;
 bool isSimRobot = true;
 bool robotPreCollision = false;
 bool ballLost = false;
-int ballLostTime = 0;
+int standingTime = 0;
+bool spinning = false;
+int spinningTime = 0;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
 
@@ -215,7 +217,6 @@ public:
         
         int timestep = std::stoi(to_string(timeData[std::to_string(theGameState.playerNumber)]));
         // double test_distance = getMinimumDis(0.0, 0.0, 10.0, 0.0, 5.0, 5.0);
-        //std::cout << "Test distance: " << test_distance << std::endl;
         
         int role; // the role our robot takes
         int count = 0; // the count of other robots have a greater measure
@@ -243,11 +244,7 @@ public:
             if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
                 count+=1;
             }
-        }
-
-        // std::cout << "count" << std::endl;
-        // std::cout << count << std::endl;
-        
+        }        
         
         
         // assign role based on num of robots closer
@@ -266,7 +263,6 @@ public:
         if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
             // Make sure Goal keeper keeps its role and assign new roles
             if(theGameState.playerNumber == 1) {
-                // std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & goalKeeperKickAlgorithm;
 
                 // store previous role separately for each robot.
@@ -276,7 +272,6 @@ public:
                     preRole[std::to_string(theGameState.playerNumber)] = 1;
                 }
             } else if(role == 2) {
-                // std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & attackerAlgorithm;
 
                 // store previous role separately for each robot.
@@ -286,7 +281,6 @@ public:
                     preRole[std::to_string(theGameState.playerNumber)] = 2;
                 }
             } else {
-                // std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
                 algorithm = & defenderKickAlgorithm;
 
                 // store previous role separately for each robot.
@@ -313,9 +307,6 @@ public:
 
         }
         if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-        // std::cout<< "player" << std::endl;
-        // std::cout << theGameState.playerNumber << std::endl;
-        // std::cout << to_string(preRole[std::to_string(theGameState.playerNumber)]) << std::endl;
         }
         
         
@@ -439,13 +430,6 @@ public:
         std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
         
         
-        //std::cout << "predicted position" << std::endl;
-        //for (float i :predictedPosition )
-        //{
-        //  std::cout << i << std::endl;
-        //}
-        
-        
         bool shield = false;
         bool obstacles[8] = {false, false, false, false,false, false, false,false};
         if (RLConfig::shieldEnabled)
@@ -463,10 +447,6 @@ public:
                 shield = true;
             }
             
-            
-            //std::cout << "Robot Number: " << theGameState.playerNumber << std::endl;
-            //std::cout << "Robot Position: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
-            //std::cout << "Predicted Position: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -499,11 +479,6 @@ public:
             }
             
         }
-        //        if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-        //            std::cout << "Attacker: " << theGameState.playerNumber << std::endl;
-        //        }
-        //        std::cout << "Time: " << Time::getCurrentSystemTime() << std::endl;
-        //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
         
         bool deadSpot = false;
         
@@ -525,7 +500,6 @@ public:
 //            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
 //                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
 //            }
-//            //std::cout << "Player " << theGameState.playerNumber <<  ": " << "Avg Dist: " << averageDist << std::endl;
 //            if(averageDist < 0.2 && json::has_key(preRole, std::to_string(theGameState.playerNumber)) && preRole[std::to_string(theGameState.playerNumber)] == 2 ){
 //                deadSpot = true;
 //            }
@@ -534,58 +508,9 @@ public:
         
         
         
-        if (theFieldBall.timeSinceBallWasSeen > 10000)
+        if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
         {
             ballLost = true;
-            std::cout << "Ball Lost" << std::endl;
-            std::cout << "robot:" << theGameState.playerNumber << std::endl;
-            std::cout << "time since last seen" << theFieldBall.timeSinceBallWasSeen << std::endl;
-            // Spots to walk to when ball is not seen:
-            // Highest attacker = (500, 0)
-            // Lowest attacker = (0, 0)
-            // Highest defender = (-2000, 500)
-            // Lowest defender = (-2000, -500)
-            // Goalkeeper = (-4500, 0)
-            
-            float lostBallPositions[5][2] = {{500, 0}, {0, 0}, {-2000, 500}, {-2000, -500}, {-4500, 0}};
-
-            // Position variable
-            float position[2];
- 
-            // Calculate using role, which spot to walk to
-            if (role == 2) {
-                // Attacker
-                // Find if we are the highest or lowest attacker
-                if (count == 0) {
-                    // higher
-                    position[0] = lostBallPositions[0][0];
-                    position[1] = lostBallPositions[0][1];
-                }
-                else {
-                    // lower
-                    position[0] = lostBallPositions[1][0];
-                    position[1] = lostBallPositions[1][1];
-                }
-            }
-            else if (role == 3) {
-                // Defender
-                // Find if we are the highest or lowest defender
-                if (count == 0) {
-                    // higher
-                    position[0] = lostBallPositions[2][0];
-                    position[1] = lostBallPositions[2][1];
-                }
-                else {
-                    // lower
-                    position[0] = lostBallPositions[3][0];
-                    position[1] = lostBallPositions[3][1];
-                }
-            }
-            else {
-                // Goalkeeper
-                position[0] = lostBallPositions[4][0];
-                position[1] = lostBallPositions[4][1];
-            }
             
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
             // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
@@ -594,31 +519,48 @@ public:
             float angle_pos = atan2(0 - theRobotPose.translation.y(), 0 - theRobotPose.translation.x());
 
             // Turn until facing the origin (within 0.2 rads)
-            if (theRobotPose.rotation < angle_pos - 0.2)
+            if (theRobotPose.rotation < angle_pos - 0.2 && !spinning)
             {
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                     0.0f,
                     0.0f}});
             }
-            else if (theRobotPose.rotation > angle_pos + 0.2)
+            else if (theRobotPose.rotation > angle_pos + 0.2 && !spinning)
             {
                 theWalkAtRelativeSpeedSkill({.speed = {-0.8f,
                     0.0f,
                     0.0f}});
             }
+            else if (spinning) {
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+
+                if (spinningTime > 800) {
+                    spinning = false;
+                    standingTime = 0;
+                    spinningTime = 0;
+                }
+                spinningTime += 1;
+            }
             else
             {
-                // Walk to position
-                theWalkAtRelativeSpeedSkill({.speed = {0.0f, 0.0f, 0.0f}});
+                // stand still
+                theStandSkill();
+                if (standingTime > 600)
+                {
+                spinning = true;
+                standingTime = 0;
+                spinningTime = 0;
+                }
+                standingTime += 1;
             }
-            
-            // float x_pos = position[0] - theRobotPose.translation.x();
-            // float y_pos = position[1] - theRobotPose.translation.y();
-            float x_pos = 0;
-            float y_pos = 0;
 
-            // Walk to position
-            // theWalkAtRelativeSpeedSkill({.speed = {0.0f, x_pos, y_pos}});
+        }
+        else if (theFieldBall.timeSinceBallWasSeen > 4000 && role == 2){
+            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                0.0f,
+                0.0f}});
         }
         else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
             // std::cout << "Shielding activated" << std::endl;
@@ -650,18 +592,15 @@ public:
             
         }
         else if(robotPreCollision){
-            //                std::cout << "Collision Avoidance activated" << std::endl;
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
             double angle = ((index.first + index.second)/2 + 1) * (PI/4) - PI/8;
             float x = 300.f * cos(angle);
             float y = 300.f * sin(angle);
-            // std::cout << "x: " << x << ", y: " << y << std::endl;
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,x,y}});
             
         }
         else{
             if(deadSpot){
-                //std::cout << "Dead Spot activated" << std::endl;
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,
                     theFieldBall.recentBallPositionOnField().x(),
                     theFieldBall.recentBallPositionOnField().y()}});
@@ -671,7 +610,6 @@ public:
                 }
                 else if(algorithm->getActionLength() == 4)
                 {
-                    // std::cout << "Action space 4" << std::endl;
                     if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 400.0 && role != 2)
                     {
                         theWalkToBallAndKickSkill({
@@ -803,7 +741,6 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
         intersect = (doIntersect(theRobotPose.translation, newVector, sbl, stl) || doIntersect(theRobotPose.translation, newVector, sbl, sbr) || doIntersect(theRobotPose.translation, newVector, sbr, str) || doIntersect(theRobotPose.translation, newVector, stl, str));
         intersect2 = (doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateCounterClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateCounterClockwise, stl, str));
         intersect3 = (doIntersect(theRobotPose.translation, rotateClockwise, sbl, stl) || doIntersect(theRobotPose.translation, rotateClockwise, sbl, sbr) || doIntersect(theRobotPose.translation, rotateClockwise, sbr, str) || doIntersect(theRobotPose.translation, rotateClockwise, stl, str));
-        //std::cout << "Distance between obstacle and Robot: " <<(theRobotPose.translation - obstaclePose).norm() << std::endl;
         
         double angleRelativeToRobot = atan2( Obstacle[i].y - theRobotPose.translation.y(), Obstacle[i].x - theRobotPose.translation.x());
         if(angleRelativeToRobot<0){
@@ -836,8 +773,6 @@ void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstac
         
     }
     for(auto& teammate: theTeamData.teammates){
-        //std::cout << "teammate number: " << teammate.number << std::endl;
-        // std::cout << "teammate Position: " << teammate.theRobotPose.translation.x() << ", "<<teammate.theRobotPose.translation.y() << std::endl;
         ObstacleVector o{teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y(), true};
         Obstacle.push_back(o);
     }
