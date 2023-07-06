@@ -106,49 +106,37 @@ void SkillBehaviorControl::executeRequest()
         return;
       }
     }
-    // theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-    switch(theSkillRequest.skill)
-    {
-      case SkillRequest::stand:
-        theStandSkill();
-        theLookActiveSkill({.withBall = true});
-        break;
-      case SkillRequest::walk:
-      {
-        const Pose2f targetPose = theRobotPose.inversePose * theSkillRequest.target;
-        if(theFieldBall.ballWasSeen(7000) || theTeammatesBallModel.isValid)
-        {
-          theWalkToPointObstacleSkill({ .target = theRobotPose.inversePose * theSkillRequest.target,
-                                        .rough = theGameState.isGoalkeeper(),
-                                        .disableObstacleAvoidance = theGameState.isGoalkeeper(),
-                                        .targetOfInterest = theFieldBall.recentBallPositionRelative() }); // TODO: set the right parameters and occasionally use WalkPotentialField
-          theLookAtBallAndTargetSkill({ .startTarget = true,
-                                        .walkingDirection = targetPose.translation,
-                                        .ballPositionAngle = theFieldBall.recentBallPositionRelative().angle() });
-        }
-        else
-        {
-          theWalkToPointObstacleSkill({ .target = theRobotPose.inversePose * theSkillRequest.target,
-                                        .rough = theGameState.isGoalkeeper(),
-                                        .disableObstacleAvoidance = theGameState.isGoalkeeper() }); // TODO: set the right parameters and occasionally use WalkPotentialField
-          theLookActiveSkill({ .withBall = true });
-        }
-        break;
-      }
-      // case SkillRequest::block:
-      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-      //   break;
-      // case SkillRequest::mark:
-      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-      //   break;
-      // case SkillRequest::observe:
-      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-      //   break;
-      // case SkillRequest::neuralControl:
-      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-      //   break;
-      default:
-        theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
-    }
+    theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+    // switch(theSkillRequest.skill)
+    // {
+    //   case SkillRequest::stand:
+    //     theStandSkill();
+    //     theLookActiveSkill({.withBall = true});
+    //     break;
+    //   case SkillRequest::walk:
+    //   {
+    //     const Pose2f targetPose = theRobotPose.inversePose * theSkillRequest.target;
+    //     if(theFieldBall.ballWasSeen(7000) || theTeammatesBallModel.isValid)
+    //     {
+    //       theWalkToPointObstacleSkill({ .target = theRobotPose.inversePose * theSkillRequest.target,
+    //                                     .rough = theGameState.isGoalkeeper(),
+    //                                     .disableObstacleAvoidance = theGameState.isGoalkeeper(),
+    //                                     .targetOfInterest = theFieldBall.recentBallPositionRelative() }); // TODO: set the right parameters and occasionally use WalkPotentialField
+    //       theLookAtBallAndTargetSkill({ .startTarget = true,
+    //                                     .walkingDirection = targetPose.translation,
+    //                                     .ballPositionAngle = theFieldBall.recentBallPositionRelative().angle() });
+    //     }
+    //     else
+    //     {
+    //       theWalkToPointObstacleSkill({ .target = theRobotPose.inversePose * theSkillRequest.target,
+    //                                     .rough = theGameState.isGoalkeeper(),
+    //                                     .disableObstacleAvoidance = theGameState.isGoalkeeper() }); // TODO: set the right parameters and occasionally use WalkPotentialField
+    //       theLookActiveSkill({ .withBall = true });
+    //     }
+    //     break;
+    //   }
+    //   default:
+    //     theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
+    // }
   }
 }
