@@ -74,6 +74,8 @@ std::vector<int> robotNum;
 
 bool isSimRobot = true;
 bool robotPreCollision = false;
+bool ballLost = false;
+int ballLostTime = 0;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
 
@@ -243,8 +245,8 @@ public:
             }
         }
 
-        std::cout << "count" << std::endl;
-        std::cout << count << std::endl;
+        // std::cout << "count" << std::endl;
+        // std::cout << count << std::endl;
         
         
         
@@ -311,9 +313,9 @@ public:
 
         }
         if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-        std::cout<< "player" << std::endl;
-        std::cout << theGameState.playerNumber << std::endl;
-        std::cout << to_string(preRole[std::to_string(theGameState.playerNumber)]) << std::endl;
+        // std::cout<< "player" << std::endl;
+        // std::cout << theGameState.playerNumber << std::endl;
+        // std::cout << to_string(preRole[std::to_string(theGameState.playerNumber)]) << std::endl;
         }
         
         
@@ -534,6 +536,10 @@ public:
         
         if (theFieldBall.timeSinceBallWasSeen > 10000)
         {
+            ballLost = true;
+            std::cout << "Ball Lost" << std::endl;
+            std::cout << "robot:" << theGameState.playerNumber << std::endl;
+            std::cout << "time since last seen" << theFieldBall.timeSinceBallWasSeen << std::endl;
             // Spots to walk to when ball is not seen:
             // Highest attacker = (500, 0)
             // Lowest attacker = (0, 0)
@@ -545,7 +551,7 @@ public:
 
             // Position variable
             float position[2];
-
+ 
             // Calculate using role, which spot to walk to
             if (role == 2) {
                 // Attacker
@@ -582,12 +588,37 @@ public:
             }
             
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
-            float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
-            float x_pos = cos(angle_pos);
-            float y_pos = sin(angle_pos);
+            // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
+
+            // Get angle to origin
+            float angle_pos = atan2(0 - theRobotPose.translation.y(), 0 - theRobotPose.translation.x());
+
+            // Turn until facing the origin (within 0.2 rads)
+            if (theRobotPose.rotation < angle_pos - 0.2)
+            {
+                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
+                    0.0f,
+                    0.0f}});
+            }
+            else if (theRobotPose.rotation > angle_pos + 0.2)
+            {
+                theWalkAtRelativeSpeedSkill({.speed = {-0.8f,
+                    0.0f,
+                    0.0f}});
+            }
+            else
+            {
+                // Walk to position
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f, 0.0f, 0.0f}});
+            }
+            
+            // float x_pos = position[0] - theRobotPose.translation.x();
+            // float y_pos = position[1] - theRobotPose.translation.y();
+            float x_pos = 0;
+            float y_pos = 0;
 
             // Walk to position
-            theWalkAtRelativeSpeedSkill({.speed = {0.0f, x_pos, y_pos}});
+            // theWalkAtRelativeSpeedSkill({.speed = {0.0f, x_pos, y_pos}});
         }
         else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
             // std::cout << "Shielding activated" << std::endl;
@@ -651,12 +682,12 @@ public:
                         });
                     }
                     else if (role == 2){
-                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f);
+                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                         float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f);
                         if (action_1 > 0){
-                            action_1 = action_1 * 1.6 + 0.4;
+                            action_1 = action_1 * 1.4 + 0.2;
                         }
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f) * 0.5f;
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
                         
                         theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
                     }
