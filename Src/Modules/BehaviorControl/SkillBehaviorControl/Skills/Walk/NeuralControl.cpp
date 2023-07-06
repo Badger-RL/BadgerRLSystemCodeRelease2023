@@ -550,33 +550,34 @@ public:
                 if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                 }
-                else if(algorithm->getActionLength() == 4){
-                    // std::cout << "Action space 4" << std::endl;
-                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
-                    {
-                        theWalkToBallAndKickSkill({
-                            .targetDirection = 0_deg,
-                            .kickType = KickInfo::walkForwardsRightLong,
-                            .kickLength = 1000.f,
-                            
-                        });
-                    }
-                    else if (role == 2){
-                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
-                        float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
-                        if (action_1 > 0){
-                            action_1 = action_1 * 1.6 + 0.2f;
-                        }
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                else if(algorithm->getActionLength() == 4)
+            {
+                // std::cout << "Action space 4" << std::endl;
+                if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
+                {
+                    theWalkToBallAndKickSkill({
+                        .targetDirection = 0_deg,
+                        .kickType = KickInfo::walkForwardsRightLong,
+                        .kickLength = 1000.f,
                         
-                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                    });
+                }
+                else if (role == 2){
+                    float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
+                    float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
+                    if (action_1 > 0){
+                        action_1 = action_1 * 1.6 + 0.2;
                     }
-                    else{
-                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-                        
-                    }
+                    float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                    
+                    theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                }
+                else{
+                    theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                     
                 }
+                
+            }
                 else
                 {
                     std::cout << "unsupported action space" << std::endl;

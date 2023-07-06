@@ -4,23 +4,19 @@ RobotStatus
   timeWhenLastUpright: Timestamp(bits=8, shift=6, reference=relativePast)
   sequenceNumbers: Integer(min=-1, max=14)[7]
 }
-
 RobotPose
 {
   rotation: Angle(bits=8) // Is also present in the SPLStandardMessage.
   translation: Vector<Float(min=-32768, max=32767, bits=16)>(n=2) // Is also present in the SPLStandardMessage.
   quality: Enum(type=RobotPose::LocalizationQuality)
   covariance: Matrix<Float>(m=3, n=3, symmetric)
-  timestampLastJump: Timestamp(bits=8, shift=7, reference=relativePast, noclip)
 }
-
 BallState
 {
   position: Vector<Float(min=-32768, max=32767, bits=16)>(n=2) // Is also present in the SPLStandardMessage.
   velocity: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
   covariance: Matrix<Float>(m=2, n=2, symmetric)
 }
-
 BallModel
 {
   lastPerception: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
@@ -29,14 +25,12 @@ BallModel
   timeWhenDisappeared: Timestamp
   seenPercentage: Integer(min=0, max=100)
 }
-
 Whistle
 {
   confidenceOfLastWhistleDetection: Float(min=0, max=2.55, bits=8)
   channelsUsedForWhistleDetection: Integer(min=0, max=4)
   lastTimeWhistleDetected: Timestamp(bits=16, reference=relativePast, noclip)
 }
-
 BehaviorStatus
 {
   activity: Enum(type=BehaviorStatus::Activity, uncompressed)
@@ -47,7 +41,6 @@ BehaviorStatus
   
   distance: Float
 }
-
 StrategyStatus
 {
   proposedTactic: Enum(type=Tactic::Type, uncompressed)
@@ -59,7 +52,6 @@ StrategyStatus
   position: Enum(type=Tactic::Position::Type)
   role: Enum(type=Role::Type)
 }
-
 Obstacle
 {
   covariance: Matrix<Float>(m=2, n=2, symmetric)
@@ -69,25 +61,17 @@ Obstacle
   lastSeen: Timestamp(bits=8, shift=6, reference=relativePast)
   type: Enum(type=Obstacle::Type)
 }
-
 ObstacleModel
 {
   obstacles: Obstacle[:7]
 }
-
 FrameInfo
 {
   time: Timestamp(bits=8, reference=relativePast)
 }
-
 TeamMessage
 {
-  theRobotStatus: RobotStatus
   theRobotPose: RobotPose
   theFrameInfo: FrameInfo
   theBallModel: BallModel
-  theWhistle: Whistle
-  theBehaviorStatus: BehaviorStatus
-  theStrategyStatus: StrategyStatus
-  theObstacleModel: ObstacleModel
 }
