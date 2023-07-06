@@ -133,6 +133,7 @@ SKILL_IMPLEMENTATION(NeuralControlImpl,
     REQUIRES(FieldDimensions),
     MODIFIES(BehaviorStatus),
     CALLS(LookForward),
+    CALLS(LookAtGlobalBall),
     CALLS(Stand),
     CALLS(PublishMotion),
     CALLS(WalkAtRelativeSpeed),
@@ -388,7 +389,8 @@ public:
         }
         
         
-        theLookForwardSkill();
+        // theLookForwardSkill();
+        theLookAtGlobalBallSkill();
         
         //float minObstacleDistance = std::numeric_limits<float>::max();
         //float minTeammateDistance =  std::numeric_limits<float>::max();
@@ -496,7 +498,7 @@ public:
         
         
         
-        if (theFieldBall.timeSinceBallWasSeen > 4000)
+        if (theFieldBall.timeSinceBallWasSeen > 10000)
         {
             theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                 0.0f,
@@ -586,16 +588,6 @@ public:
                 }
             }
         }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         
         if (!(json::has_key(prevObservationData,std::to_string(theGameState.playerNumber)))){
