@@ -206,7 +206,6 @@ public:
     {
         
         cognitionLock.lock();
-        
         if (!(json::has_key(timeData,std::to_string(theGameState.playerNumber))))
         {
             timeData.insert(std::to_string(theGameState.playerNumber), 0);
@@ -410,30 +409,30 @@ public:
         
         bool deadSpot = false;
         
-        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
-            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
-        }
-        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 10){
-            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-            double averageDist = 0;
-            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size()-1; i++){
-                double currentX = simRobotDeadSpot[theGameState.playerNumber-1][i].x();
-                double currentY = simRobotDeadSpot[theGameState.playerNumber-1][i].y();
-                double nextX = simRobotDeadSpot[theGameState.playerNumber-1][i+1].x();
-                double nextY = simRobotDeadSpot[theGameState.playerNumber-1][i+1].y();
-                averageDist += sqrt( pow(nextX - currentX, 2) +  pow(nextY - currentY, 2));
-            }
-            averageDist /=simRobotDeadSpot[theGameState.playerNumber-1].size()-1;
-            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
-                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
-            }
-            //std::cout << "Player " << theGameState.playerNumber <<  ": " << "Avg Dist: " << averageDist << std::endl;
-            if(averageDist < 0.2 && json::has_key(preRole, std::to_string(theGameState.playerNumber)) && preRole[std::to_string(theGameState.playerNumber)] == 2 ){
-                deadSpot = true;
-            }
-            
-        }
+//        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
+//            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
+//        }
+//        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+//        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 10){
+//            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+//            double averageDist = 0;
+//            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size()-1; i++){
+//                double currentX = simRobotDeadSpot[theGameState.playerNumber-1][i].x();
+//                double currentY = simRobotDeadSpot[theGameState.playerNumber-1][i].y();
+//                double nextX = simRobotDeadSpot[theGameState.playerNumber-1][i+1].x();
+//                double nextY = simRobotDeadSpot[theGameState.playerNumber-1][i+1].y();
+//                averageDist += sqrt( pow(nextX - currentX, 2) +  pow(nextY - currentY, 2));
+//            }
+//            averageDist /=simRobotDeadSpot[theGameState.playerNumber-1].size()-1;
+//            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
+//                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
+//            }
+//            //std::cout << "Player " << theGameState.playerNumber <<  ": " << "Avg Dist: " << averageDist << std::endl;
+//            if(averageDist < 0.2 && json::has_key(preRole, std::to_string(theGameState.playerNumber)) && preRole[std::to_string(theGameState.playerNumber)] == 2 ){
+//                deadSpot = true;
+//            }
+//
+//        }
         
         
         
@@ -646,7 +645,7 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
             Obstacle.erase(Obstacle.begin());
         }
     }
-    return intersect || intersect2 || intersect3 || withInRobotSquare;
+    return intersect || withInRobotSquare;
 }
 
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
