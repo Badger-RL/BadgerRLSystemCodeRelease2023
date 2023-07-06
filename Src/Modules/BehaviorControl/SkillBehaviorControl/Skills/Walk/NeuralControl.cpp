@@ -645,14 +645,14 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
             Obstacle.erase(Obstacle.begin());
         }
     }
-    return intersect || withInRobotSquare;
+    return intersect || intersect2 || intersect3 || withInRobotSquare;
 }
 
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
     
     for (auto & obstacle : theObstacleModel.obstacles)
     {
-        if(!obstacle.isTeammate()){
+        if(!obstacle.isTeammate() && !obstacle.isOpponent()){
             ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
             Obstacle.push_back(o);
         }
