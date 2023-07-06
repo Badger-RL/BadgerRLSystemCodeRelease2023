@@ -328,8 +328,8 @@ public:
         }
         
         
-        // theLookForwardSkill();
-        theLookAtGlobalBallSkill();
+        theLookForwardSkill();
+        // theLookAtGlobalBallSkill();
         
         //float minObstacleDistance = std::numeric_limits<float>::max();
         //float minTeammateDistance =  std::numeric_limits<float>::max();
@@ -496,7 +496,7 @@ public:
                 else if(algorithm->getActionLength() == 4)
                 {
                     // std::cout << "Action space 4" << std::endl;
-                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
+                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 400.0 && role != 2)
                     {
                         theWalkToBallAndKickSkill({
                             .targetDirection = 0_deg,
@@ -653,10 +653,10 @@ void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstac
     
     for (auto & obstacle : theObstacleModel.obstacles)
     {
-        if(!obstacle.isTeammate()){
-            ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
-            Obstacle.push_back(o);
-        }
+        // if(!obstacle.isTeammate()){
+        //     ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
+        //     Obstacle.push_back(o);
+        // }
         
     }
     for(auto& teammate: theTeamData.teammates){

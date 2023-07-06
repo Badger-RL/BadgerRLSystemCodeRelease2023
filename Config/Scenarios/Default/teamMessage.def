@@ -9,13 +9,13 @@ RobotPose
   rotation: Angle(bits=8) // Is also present in the SPLStandardMessage.
   translation: Vector<Float(min=-32768, max=32767, bits=16)>(n=2) // Is also present in the SPLStandardMessage.
   quality: Enum(type=RobotPose::LocalizationQuality)
-  covariance: Matrix<Float>(m=3, n=3, symmetric)
+  // covariance: Matrix<Float>(m=3, n=3, symmetric)
 }
 BallState
 {
   position: Vector<Float(min=-32768, max=32767, bits=16)>(n=2) // Is also present in the SPLStandardMessage.
-  velocity: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
-  covariance: Matrix<Float>(m=2, n=2, symmetric)
+  // velocity: Vector<Float(min=-32768, max=32767, bits=16)>(n=2)
+  // covariance: Matrix<Float>(m=2, n=2, symmetric)
 }
 BallModel
 {
