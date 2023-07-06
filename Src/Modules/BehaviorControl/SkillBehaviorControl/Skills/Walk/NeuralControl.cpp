@@ -216,12 +216,108 @@ public:
         //std::cout << "Test distance: " << test_distance << std::endl;
         
         int role; // the role our robot takes
+        int count = 0; // the count of other robots have a greater measure
+        theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
+        float ownDistance = theBehaviorStatus.distance; // our own distance
         
         
+        /*
+         // Iterate through all teammates and find out their distance measure
+         for(auto & teammate : theTeamData.teammates) {
+         // Exclude the goal keeper and ourselves
+         if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
+         float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
+         // std::cout << "the distance of " << teammate.number << "is " << distance << std::endl;
+         
+         // if the teammate has a greater distance, update the count
+         if(ownDistance >= distance) {
+         count++;
+         }
+         }
+         }
+         */
+        for(auto & teammate : theTeamData.teammates) {
+            // Exclude the goal keeper and ourselves
+            if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
+                count+=1;
+            }
+        }
+
+        std::cout << "count" << std::endl;
+        std::cout << count << std::endl;
+        
+        
+        
+        // assign role based on num of robots closer
+        if(count >= 2) {
+            // Defender
+            role = 3;
+        } else {
+            // Attacker
+            role = 2;
+        }
+
 
         
         
+        // Let there be 3 second interval in between changes of roles
+        if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
+            // Make sure Goal keeper keeps its role and assign new roles
+            if(theGameState.playerNumber == 1) {
+                // std::cout << "Goalkeeper: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & goalKeeperKickAlgorithm;
+
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 1);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 1;
+                }
+            } else if(role == 2) {
+                // std::cout << "Attacker: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & attackerAlgorithm;
+
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 2);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 2;
+                }
+            } else {
+                // std::cout << "Defender: Robot - " << theGameState.playerNumber << std::endl;
+                algorithm = & defenderKickAlgorithm;
+
+                // store previous role separately for each robot.
+                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
+                    preRole.insert(std::to_string(theGameState.playerNumber), 3);
+                } else {
+                    preRole[std::to_string(theGameState.playerNumber)] = 3;
+                }
+            }
+        }
+
+        // Make sure everything is updated every time step, default is attacker
+        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+            // Assign role based on previous roles
+            if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+                algorithm = & goalKeeperKickAlgorithm;
+            } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+                algorithm = & attackerAlgorithm;
+            } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+                algorithm = & defenderKickAlgorithm;
+            }
+        } else {
+            algorithm = & attackerAlgorithm;
+
+        }
+        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+        std::cout<< "player" << std::endl;
+        std::cout << theGameState.playerNumber << std::endl;
+        std::cout << to_string(preRole[std::to_string(theGameState.playerNumber)]) << std::endl;
+        }
         
+        
+        /*
         // assign role based on num of robots closer
         if(theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
             // Defender
@@ -239,7 +335,7 @@ public:
 
         }
 
-        
+        */
         
  
     
