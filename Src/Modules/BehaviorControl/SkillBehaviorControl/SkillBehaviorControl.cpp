@@ -92,7 +92,8 @@ void SkillBehaviorControl::executeRequest()
           theSkillRequest.skill == SkillRequest::pass ||
           theSkillRequest.skill == SkillRequest::dribble)
   {
-    thePlayBallSkill();
+    theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+    // thePlayBallSkill();
   }
   else
   {
@@ -105,7 +106,7 @@ void SkillBehaviorControl::executeRequest()
         return;
       }
     }
-
+    // theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
     switch(theSkillRequest.skill)
     {
       case SkillRequest::stand:
@@ -134,20 +135,20 @@ void SkillBehaviorControl::executeRequest()
         }
         break;
       }
-      case SkillRequest::block:
-        theBlockSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
-        break;
-      case SkillRequest::mark:
-        theMarkSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
-        break;
-      case SkillRequest::observe:
-        theObservePointSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
-        break;
-      case SkillRequest::neuralControl:
-        theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
-        break;
+      // case SkillRequest::block:
+      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+      //   break;
+      // case SkillRequest::mark:
+      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+      //   break;
+      // case SkillRequest::observe:
+      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+      //   break;
+      // case SkillRequest::neuralControl:
+      //   theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation}); // TODO: set the right parameters and occasionally use WalkPotentialField
+      //   break;
       default:
-        FAIL("Unknown skill request.");
+        theNeuralControlSkill({.target = theRobotPose.inversePose * theSkillRequest.target.translation});
     }
   }
 }
