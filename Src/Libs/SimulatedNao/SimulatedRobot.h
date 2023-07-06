@@ -202,7 +202,7 @@ public:
    */
   static int getNumber(const SimRobot::Object* obj);
 
-  static constexpr int robotsPerTeam = 7; /**< Actually the offset of the second team's robot object numbers in the simulation scene. */
+  static constexpr int robotsPerTeam = 20; /**< Actually the offset of the second team's robot object numbers in the simulation scene. */
 
 protected:
   /**

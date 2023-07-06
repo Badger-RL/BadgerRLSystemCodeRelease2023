@@ -9,7 +9,7 @@
 #define GAMECONTROLLER_STRUCT_HEADER  "RGme"
 #define GAMECONTROLLER_STRUCT_VERSION 15
 
-#define MAX_NUM_PLAYERS 7
+#define MAX_NUM_PLAYERS 20
 
 // SPL
 #define TEAM_BLUE   0 // blue, cyan

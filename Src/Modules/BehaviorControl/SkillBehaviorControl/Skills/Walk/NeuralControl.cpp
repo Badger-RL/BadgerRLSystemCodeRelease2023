@@ -468,45 +468,29 @@ public:
         //        std::cout << "Robot " << theGameState.playerNumber  << ", Robot Pose: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << ", Predicted Pose: " << predictedPosition[0] << ", " << predictedPosition[1] << std::endl;
         
         bool deadSpot = false;
-        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
-            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
-        }
-        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 5){
-            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-            double meanX = 0;
-            double meanY = 0;
-            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
-                meanX+=simRobotDeadSpot[theGameState.playerNumber-1][i].x();
-                meanY+=simRobotDeadSpot[theGameState.playerNumber-1][i].y();
-                
-            }
-            meanX/=simRobotDeadSpot[theGameState.playerNumber-1].size();
-            meanY/=simRobotDeadSpot[theGameState.playerNumber-1].size();
-            
-            double stdX = 0;
-            double stdY = 0;
-            
-            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size(); i++){
-                stdX += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].x() - meanX, 2);
-                stdY += pow(simRobotDeadSpot[theGameState.playerNumber-1][i].y() - meanY, 2);
-                
-            }
-            
-            stdX = sqrt(stdX/simRobotDeadSpot[theGameState.playerNumber-1].size());
-            stdY = sqrt(stdY/simRobotDeadSpot[theGameState.playerNumber-1].size());
-            
-            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
-                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
-            }
-            
-            
-            
-            // Detected Dead Spots
-            if(stdX < 0.30 && (json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2 && stdY < 0.30){
-                deadSpot = true;
-            }
-        }
+        
+        //        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
+        //            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
+        //        }
+        //        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+        //        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 10){
+        //            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
+        //            double averageDist = 0;
+        //            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size()-1; i++){
+        //                double currentX = simRobotDeadSpot[theGameState.playerNumber-1][i].x();
+        //                double currentY = simRobotDeadSpot[theGameState.playerNumber-1][i].y();
+        //                double nextX = simRobotDeadSpot[theGameState.playerNumber-1][i+1].x();
+        //                double nextY = simRobotDeadSpot[theGameState.playerNumber-1][i+1].y();
+        //                averageDist += sqrt( pow(nextX - currentX, 2) +  pow(nextY - currentY, 2));
+        //            }
+        //            averageDist /=simRobotDeadSpot[theGameState.playerNumber-1].size()-1;
+        //            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
+        //                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
+        //            }
+        //            std::cout << "Player " << theGameState.playerNumber <<  ": " << "Avg Dist: " << averageDist << std::endl;
+        ////            if(averageDist < 0.4 && )
+        //
+        //        }
         
         
         
@@ -557,42 +541,49 @@ public:
             
         }
         else{
-            if (algorithm->getActionLength() == 3){
-                theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-            }
-            else if(algorithm->getActionLength() == 4)
-            {
-                // std::cout << "Action space 4" << std::endl;
-                if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
-                {
-                    theWalkToBallAndKickSkill({
-                        .targetDirection = 0_deg,
-                        .kickType = KickInfo::walkForwardsRightLong,
-                        .kickLength = 1000.f,
-                        
-                    });
-                }
-                else if (role == 2){
-                    float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
-                    float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
-                    if (action_1 > 0){
-                        action_1 = action_1 * 1.6 + 0.2f;
-                    }
-                    float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
-                    
-                    theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
-                }
-                else{
+            if(deadSpot){
+                std::cout << "Dead Spot activated" << std::endl;
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    theFieldBall.recentBallPositionOnField().x(),
+                    theFieldBall.recentBallPositionOnField().y()}});
+            }else{
+                if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                }
+                else if(algorithm->getActionLength() == 4){
+                    // std::cout << "Action space 4" << std::endl;
+                    if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 200.0 && role != 2)
+                    {
+                        theWalkToBallAndKickSkill({
+                            .targetDirection = 0_deg,
+                            .kickType = KickInfo::walkForwardsRightLong,
+                            .kickLength = 1000.f,
+                            
+                        });
+                    }
+                    else if (role == 2){
+                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
+                        float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
+                        if (action_1 > 0){
+                            action_1 = action_1 * 1.6 + 0.2f;
+                        }
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                        
+                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                    }
+                    else{
+                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                        
+                    }
                     
                 }
-                
-            }
-            else
-            {
-                std::cout << "unsupported action space" << std::endl;
+                else
+                {
+                    std::cout << "unsupported action space" << std::endl;
+                }
             }
         }
+    
         
         
         
