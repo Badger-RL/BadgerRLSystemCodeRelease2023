@@ -456,7 +456,10 @@ public:
             {
                 shield = true;
             }
-            
+            if(predictedPosition[0] < 4000 && predictedPosition[1] > 600 || predictedPosition[1] < -600){
+                shield = true;
+            }
+
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -571,32 +574,30 @@ public:
                 0.0f,
                 0.0f}});
         }
-        else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
+        else if(RLConfig::shieldEnabled && shield){
             // std::cout << "Shielding activated" << std::endl;
             if (theGameState.playerNumber != 1){
-                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
-                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
-                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
-                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
-                }
+//                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
+//                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
+//                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+//
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
+//                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
+//                }
             }
             else{
-                if (abs(theRobotPose.rotation) > .3)
-                {
-                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                        0.0f,
-                        0.0f}});
-                }
-                else{
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        0.0f,
-                        0.0f}});
-                }
-                
+                Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
+                double dist = (theRobotPose.translation - PredictedPoseVector).norm();
+                Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
+
+//                std::cout << "Unit Vector: " << unitVector.x() << ", " << unitVector.y() << std::endl;
+//                std::cout << "New Pos: " <<  -10*unitVector.x() + theRobotPose.translation.x() << ", " << -10*unitVector.y() + theRobotPose.translation.y() << std::endl;
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    -150*unitVector.x() + theRobotPose.translation.x(),
+                    -150*unitVector.y() + theRobotPose.translation.y() }});
             }
             
         }
