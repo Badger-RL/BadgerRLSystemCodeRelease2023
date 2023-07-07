@@ -319,30 +319,6 @@ public:
 //        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
 //        }
         
-        
-        /*
-        // assign role based on num of robots closer
-        if(theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
-            // Defender
-            role = 3;
-            algorithm = & defenderKickAlgorithm;
-        } else if (theGameState.playerNumber == 1){
-            role = 1;
-            algorithm = & goalKeeperKickAlgorithm;
-
-        }
-        else {
-            // Attacker
-            role = 2;
-            algorithm = & attackerAlgorithm;
-
-        }
-
-        */
-        
- 
-    
-        
         if (algorithm->getCollectNewPolicy()) {
             algorithm->waitForNewPolicy();
             
@@ -427,14 +403,7 @@ public:
         
         
         theLookForwardSkill();
-        // theLookAtGlobalBallSkill();
-        
-        //float minObstacleDistance = std::numeric_limits<float>::max();
-        //float minTeammateDistance =  std::numeric_limits<float>::max();
-        //float minTeammateDistance =  300.f;
-        
-        //double angleToClosestObstacle = PI;
-        //double angleToClosesTeammate = PI;
+
         
         
         std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
@@ -445,7 +414,7 @@ public:
         if (RLConfig::shieldEnabled)
         {
             
-            if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3050 || predictedPosition[1] < -3050){
+            if (predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
                 shield = true;
             }
             if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
@@ -456,7 +425,10 @@ public:
             {
                 shield = true;
             }
-            
+            if(predictedPosition[0] < -4000 && (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+                shield = true;
+            }
+
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -516,11 +488,8 @@ public:
 //
 //        }
         
-        
-        if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
+     if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
         {
-            ballLost = true;
-            
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
             // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
 
@@ -566,37 +535,33 @@ public:
             }
 
         }
-        else if (theFieldBall.timeSinceBallWasSeen > 4000 && role == 2){
+        else  if (theFieldBall.timeSinceBallWasSeen > 4000 && role == 2){
             theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                 0.0f,
                 0.0f}});
         }
-        else if(RLConfig::shieldEnabled && shield && !(theGameState.playerNumber == 1 && theFieldBall.positionOnField.x() < -3000 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y()>-800)){
+        else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
             // std::cout << "Shielding activated" << std::endl;
-            if (theGameState.playerNumber != 1){
-                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
-                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
-                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
-                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
-                }
-            }
-            else{
-                if (abs(theRobotPose.rotation) > .3)
-                {
-                    theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                        0.0f,
-                        0.0f}});
-                }
-                else{
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        0.0f,
-                        0.0f}});
-                }
-                
+//            if (theGameState.playerNumber != 1){
+//                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
+//                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
+//                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+//
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
+//                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
+//                }
+//            }
+           if (theGameState.playerNumber == 1){
+                Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
+                double dist = (theRobotPose.translation - PredictedPoseVector).norm();
+                Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
+
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    -150*unitVector.x() + theRobotPose.translation.x(),
+                    -150*unitVector.y() + theRobotPose.translation.y() }});
             }
             
         }
@@ -614,6 +579,7 @@ public:
                     theFieldBall.recentBallPositionOnField().x(),
                     theFieldBall.recentBallPositionOnField().y()}});
             }else{
+                
                 if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                 }
@@ -634,9 +600,7 @@ public:
                         if (action_1 > 0){
                             action_1 = action_1 * 1.6 + 0.2;
                         }
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
-                        
-                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
                     }
                     else{
                         theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
