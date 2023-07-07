@@ -293,21 +293,31 @@ public:
         }
 
         // Make sure everything is updated every time step, default is attacker
-        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-            // Assign role based on previous roles
-            if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
-                algorithm = & goalKeeperKickAlgorithm;
-            } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
-                algorithm = & attackerAlgorithm;
-            } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
-                algorithm = & defenderKickAlgorithm;
-            }
-        } else {
-            algorithm = & attackerAlgorithm;
+        // if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+        //     // Assign role based on previous roles
+        //     if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
+        //         algorithm = & goalKeeperKickAlgorithm;
+        //     } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
+        //         algorithm = & attackerAlgorithm;
+        //     } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
+        //         algorithm = & defenderKickAlgorithm;
+        //     }
+        // } else {
+        //     algorithm = & attackerAlgorithm;
+        // }
 
+        if (theGameState.playerNumber == 1){
+            algorithm = & goalKeeperKickAlgorithm;
         }
-        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+        else if (theGameState.playerNumber == 2){
+            algorithm = & defenderKickAlgorithm;
         }
+        else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5 || theGameState.playerNumber == 3) {
+            algorithm = & attackerAlgorithm;
+        }
+        // }
+//        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
+//        }
         
         
         /*
