@@ -446,14 +446,10 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] < 4000 && predictedPosition[1] > 700 || predictedPosition[1] < -700){
+            if(predictedPosition[0] < 4000 && predictedPosition[1] > 600 || predictedPosition[1] < -600){
                 shield = true;
             }
-            if(theGameState.playerNumber == 1 ){
-                std::cout << "Robot Num " << theGameState.playerNumber << std::endl;
-                std::cout << "Robot Pos: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y()<< std::endl;
-                std::cout << "Predicted Pos: " << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
-            }
+
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -587,11 +583,11 @@ public:
                 double dist = (theRobotPose.translation - PredictedPoseVector).norm();
                 Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
 
-                std::cout << "Unit Vector: " << unitVector.x() << ", " << unitVector.y() << std::endl;
-                std::cout << "New Pos: " <<  -10*unitVector.x() + theRobotPose.translation.x() << ", " << -10*unitVector.y() + theRobotPose.translation.y() << std::endl;
+//                std::cout << "Unit Vector: " << unitVector.x() << ", " << unitVector.y() << std::endl;
+//                std::cout << "New Pos: " <<  -10*unitVector.x() + theRobotPose.translation.x() << ", " << -10*unitVector.y() + theRobotPose.translation.y() << std::endl;
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                    -50*unitVector.x() + theRobotPose.translation.x(),
-                    -50*unitVector.y() + theRobotPose.translation.y() }});
+                    -150*unitVector.x() + theRobotPose.translation.x(),
+                    -150*unitVector.y() + theRobotPose.translation.y() }});
             }
             
         }
