@@ -428,7 +428,7 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] < -4000 && (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -4000 || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
                 shield = true;
             }
 
@@ -490,7 +490,9 @@ public:
 //            }
 //
 //        }
-        
+        if(theGameState.playerNumber == 1){
+            std::cout << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
+        }
      if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
         {
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
@@ -544,7 +546,7 @@ public:
                 0.0f}});
         }
         else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
-            // std::cout << "Shielding activated" << std::endl;
+             std::cout << "Shielding activated" << std::endl;
 //            if (theGameState.playerNumber != 1){
 //                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
 //                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
@@ -557,16 +559,13 @@ public:
 //                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
 //                }
 //            }
-           if (theGameState.playerNumber == 1){
                 Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
                 double dist = (theRobotPose.translation - PredictedPoseVector).norm();
                 Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
-
+                
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,
                     -150*unitVector.x() + theRobotPose.translation.x(),
                     -150*unitVector.y() + theRobotPose.translation.y() }});
-            }
-            
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
