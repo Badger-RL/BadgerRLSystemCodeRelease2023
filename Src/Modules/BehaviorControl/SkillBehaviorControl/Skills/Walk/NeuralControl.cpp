@@ -455,11 +455,14 @@ public:
              std::cout << "Shielding activated" << std::endl;
                 Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
                 double dist = (theRobotPose.translation - PredictedPoseVector).norm();
+            std::cout << theRobotPose.translation << std::endl;
+            std::cout <<PredictedPoseVector << std::endl;
                 Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
-                
-                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                    -80*unitVector.x() + theRobotPose.translation.x(),
-                    -80*unitVector.y() + theRobotPose.translation.y() }});
+            std::cout << unitVector << std::endl;
+            std::cout << -80*unitVector.x() + theRobotPose.translation.x() << ", " << -80*unitVector.y() + theRobotPose.translation.y() << std::endl;
+            theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                -80*unitVector.x() + theRobotPose.translation.x(),
+                -80*unitVector.y() + theRobotPose.translation.y()}});
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
