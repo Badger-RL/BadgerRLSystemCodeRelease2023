@@ -246,7 +246,7 @@ public:
         }
         else if (theGameState.playerNumber == 2){
             role = 3;
-            algorithm = & defenderAlgorithm;
+            algorithm = & defenderKickAlgorithm;
         }
         else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5 || theGameState.playerNumber == 3) {
             role = 2;
