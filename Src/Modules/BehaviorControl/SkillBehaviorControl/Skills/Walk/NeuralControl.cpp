@@ -72,7 +72,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = true;
+bool isSimRobot = false;
 bool robotPreCollision = false;
 bool ballLost = false;
 int standingTime = 0;
@@ -307,12 +307,15 @@ public:
         // }
 
         if (theGameState.playerNumber == 1){
+            role = 1;
             algorithm = & goalKeeperKickAlgorithm;
         }
         else if (theGameState.playerNumber == 2){
+            role = 3;
             algorithm = & defenderKickAlgorithm;
         }
         else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5 || theGameState.playerNumber == 3) {
+            role = 2;
             algorithm = & attackerAlgorithm;
         }
         // }
