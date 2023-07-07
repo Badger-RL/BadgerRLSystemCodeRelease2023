@@ -571,16 +571,16 @@ public:
         else if(RLConfig::shieldEnabled && shield){
             // std::cout << "Shielding activated" << std::endl;
             if (theGameState.playerNumber != 1){
-                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
-                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
-                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-
-                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
-                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
-                }
+//                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
+//                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
+//                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
+//
+//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+//                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
+//                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
+//                }
             }
             else{
                 Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
