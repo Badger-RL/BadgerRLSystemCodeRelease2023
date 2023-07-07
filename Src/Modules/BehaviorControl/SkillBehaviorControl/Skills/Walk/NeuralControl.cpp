@@ -357,7 +357,7 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -4000 || predictedPosition[0] < -4750  || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
                 shield = true;
             }
 
@@ -458,8 +458,8 @@ public:
                 Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
                 
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                    -150*unitVector.x() + theRobotPose.translation.x(),
-                    -150*unitVector.y() + theRobotPose.translation.y() }});
+                    -80*unitVector.x() + theRobotPose.translation.x(),
+                    -80*unitVector.y() + theRobotPose.translation.y() }});
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
