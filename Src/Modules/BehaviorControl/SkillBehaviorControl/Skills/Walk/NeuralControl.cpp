@@ -475,6 +475,11 @@ public:
                     theFieldBall.recentBallPositionOnField().x(),
                     theFieldBall.recentBallPositionOnField().y()}});
             }else{
+                // Check if we are close enough to the ball to kick it and close to the goal
+                // Also check if opponents are in a 30 degree cone in front of us
+                // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
+                if (theRobotPose 
+
                 
                 if (algorithm->getActionLength() == 3){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
@@ -496,7 +501,8 @@ public:
                         if (action_1 > 0){
                             action_1 = action_1 * 1.6 + 0.2;
                         }
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);                        
+                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
                     }
                     else{
                         theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
