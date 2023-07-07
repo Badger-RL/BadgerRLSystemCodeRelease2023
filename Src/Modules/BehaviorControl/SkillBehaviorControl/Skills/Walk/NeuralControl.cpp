@@ -72,7 +72,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = false;
+bool isSimRobot = true;
 bool robotPreCollision = false;
 bool ballLost = false;
 int standingTime = 0;
@@ -223,22 +223,6 @@ public:
         theBehaviorStatus.distance = getOwnDistance(theRobotPose, theFieldBall, theFieldDimensions);
         float ownDistance = theBehaviorStatus.distance; // our own distance
         
-        
-        /*
-         // Iterate through all teammates and find out their distance measure
-         for(auto & teammate : theTeamData.teammates) {
-         // Exclude the goal keeper and ourselves
-         if(teammate.number != theGameState.playerNumber && teammate.number != 1) {
-         float distance = teammate.theBehaviorStatus.distance; // the distance of one teammate
-         // std::cout << "the distance of " << teammate.number << "is " << distance << std::endl;
-         
-         // if the teammate has a greater distance, update the count
-         if(ownDistance >= distance) {
-         count++;
-         }
-         }
-         }
-         */
         for(auto & teammate : theTeamData.teammates) {
             // Exclude the goal keeper and ourselves
             if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
@@ -247,63 +231,13 @@ public:
         }        
         
         
-        // assign role based on num of robots closer
-        if(count >= 2) {
-            // Defender
-            role = 3;
-        } else {
-            // Attacker
-            role = 2;
-        }
-
-
-        
-        
-        // Let there be 3 second interval in between changes of roles
-        if(algorithm == NULL || Time::getCurrentSystemTime() % (DECISION_INTERVAL * 1000) < DECISION_TIME) {
-            // Make sure Goal keeper keeps its role and assign new roles
-            if(theGameState.playerNumber == 1) {
-                algorithm = & goalKeeperKickAlgorithm;
-
-                // store previous role separately for each robot.
-                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
-                    preRole.insert(std::to_string(theGameState.playerNumber), 1);
-                } else {
-                    preRole[std::to_string(theGameState.playerNumber)] = 1;
-                }
-            } else if(role == 2) {
-                algorithm = & attackerAlgorithm;
-
-                // store previous role separately for each robot.
-                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
-                    preRole.insert(std::to_string(theGameState.playerNumber), 2);
-                } else {
-                    preRole[std::to_string(theGameState.playerNumber)] = 2;
-                }
-            } else {
-                algorithm = & defenderKickAlgorithm;
-
-                // store previous role separately for each robot.
-                if(!(json::has_key(preRole, std::to_string(theGameState.playerNumber)))) {
-                    preRole.insert(std::to_string(theGameState.playerNumber), 3);
-                } else {
-                    preRole[std::to_string(theGameState.playerNumber)] = 3;
-                }
-            }
-        }
-
-        // Make sure everything is updated every time step, default is attacker
-        // if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-        //     // Assign role based on previous roles
-        //     if(preRole[std::to_string(theGameState.playerNumber)] == 1) {
-        //         algorithm = & goalKeeperKickAlgorithm;
-        //     } else if(preRole[std::to_string(theGameState.playerNumber)] == 2) {
-        //         algorithm = & attackerAlgorithm;
-        //     } else if(preRole[std::to_string(theGameState.playerNumber)] == 3) {
-        //         algorithm = & defenderKickAlgorithm;
-        //     }
+        // // assign role based on num of robots closer
+        // if(count >= 2) {
+        //     // Defender
+        //     role = 3;
         // } else {
-        //     algorithm = & attackerAlgorithm;
+        //     // Attacker
+        //     role = 2;
         // }
 
         if (theGameState.playerNumber == 1){
@@ -312,15 +246,13 @@ public:
         }
         else if (theGameState.playerNumber == 2){
             role = 3;
-            algorithm = & defenderKickAlgorithm;
+            algorithm = & defenderAlgorithm;
         }
         else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5 || theGameState.playerNumber == 3) {
             role = 2;
             algorithm = & attackerAlgorithm;
         }
-        // }
-//        if(json::has_key(preRole, std::to_string(theGameState.playerNumber))) {
-//        }
+
         
         if (algorithm->getCollectNewPolicy()) {
             algorithm->waitForNewPolicy();
@@ -347,10 +279,10 @@ public:
         
         std::vector<float> inputObservation;
         
-        if (RLConfig::normalization && role != 2) {
+        if (RLConfig::normalization && role == 1) {
             inputObservation = algorithm->normalizeObservation(rawObservation);
         }
-        else if (role == 2) {
+        else if (role == 2 || role == 3) {
             inputObservation = {};
             
             // origin,
@@ -406,9 +338,6 @@ public:
         
         
         theLookForwardSkill();
-
-        
-        
         std::vector<float> predictedPosition = environment.getPredictedPosition(theRobotPose, algorithm->getActionMeanVector());
         
         
@@ -467,29 +396,6 @@ public:
         
         bool deadSpot = false;
         
-//        if(simRobotDeadSpot[theGameState.playerNumber-1].empty()){
-//            simRobotDeadSpot[theGameState.playerNumber-1] = std::vector<Vector2f>();
-//        }
-//        simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-//        if(simRobotDeadSpot[theGameState.playerNumber-1].size() >= 10){
-//            simRobotDeadSpot[theGameState.playerNumber-1].push_back(theRobotPose.translation);
-//            double averageDist = 0;
-//            for(int i = 0; i < simRobotDeadSpot[theGameState.playerNumber-1].size()-1; i++){
-//                double currentX = simRobotDeadSpot[theGameState.playerNumber-1][i].x();
-//                double currentY = simRobotDeadSpot[theGameState.playerNumber-1][i].y();
-//                double nextX = simRobotDeadSpot[theGameState.playerNumber-1][i+1].x();
-//                double nextY = simRobotDeadSpot[theGameState.playerNumber-1][i+1].y();
-//                averageDist += sqrt( pow(nextX - currentX, 2) +  pow(nextY - currentY, 2));
-//            }
-//            averageDist /=simRobotDeadSpot[theGameState.playerNumber-1].size()-1;
-//            while(simRobotDeadSpot[theGameState.playerNumber-1].size() > 10){
-//                simRobotDeadSpot[theGameState.playerNumber-1].erase(simRobotDeadSpot[theGameState.playerNumber-1].begin());
-//            }
-//            if(averageDist < 0.2 && json::has_key(preRole, std::to_string(theGameState.playerNumber)) && preRole[std::to_string(theGameState.playerNumber)] == 2 ){
-//                deadSpot = true;
-//            }
-//
-//        }
         if(theGameState.playerNumber == 1){
             std::cout << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
         }
@@ -547,18 +453,6 @@ public:
         }
         else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
              std::cout << "Shielding activated" << std::endl;
-//            if (theGameState.playerNumber != 1){
-//                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
-//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-//                        -1*(predictedPosition[0] - theRobotPose.translation.x()),
-//                        -1*(predictedPosition[1] - theRobotPose.translation.y())}});
-//                } else if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && preRole[std::to_string(theGameState.playerNumber)] == 2){
-//
-//                    theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-//                        (theFieldBall.positionOnField.x() - theRobotPose.translation.x()),
-//                        (theFieldBall.positionOnField.y() - theRobotPose.translation.y())}});
-//                }
-//            }
                 Vector2f PredictedPoseVector(predictedPosition[0], predictedPosition[1]);
                 double dist = (theRobotPose.translation - PredictedPoseVector).norm();
                 Vector2f unitVector = Vector2f((PredictedPoseVector - theRobotPose.translation).x()/dist,(PredictedPoseVector - theRobotPose.translation).y()/dist);
@@ -596,7 +490,7 @@ public:
                             
                         });
                     }
-                    else if (role == 2){
+                    else if (role == 2 || role == 3){
                         float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                         float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
                         if (action_1 > 0){

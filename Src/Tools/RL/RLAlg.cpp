@@ -44,51 +44,9 @@ value_policy_path = policyPath + policyName + "/value_policy.h5";
 
 std::vector<float> Algorithm::normalizeObservation(std::vector<float> observation_vector) {
 
-
-  // if (to_string(metadata["policy_type"]) == "CORL_CQL")
-  // {
-  //   assert(observation_vector.size() == 12);
-  //   for(int i = 0; i < 8; i++)// this removes the dummy information then truncates the empty slots out of the vector
-  //   {
-  //     observation_vector[i] = observation_vector[i+4];
-  //   }
-  //   observation_vector.resize(8);
-  //   assert(observation_vector.size() == 8);
-
-  // }
-
-
-  // normalization_clip = std::stof(to_string(metadata["clip"]));
-  // normalization_epsilon = std::stof(to_string(metadata["epsilon"]));
-  // normalization_mean = getFloatVectorFromJSONArray(metadata["mean"]);
-  // normalization_var = getFloatVectorFromJSONArray(metadata["var"]); 
-
   assert(observation_vector.size() == metadata["observation_length"]);
 
   std::vector<float> normalized_vector = std::vector<float>(observation_vector.size());
-
-//  std::cout << "observation vector size: " << observation_vector.size() << std::endl;
-    
-  // // print out observation vector
-  // std::cout << "observation vector: ";
-  // for (int i = 0; i < int(observation_vector.size()); i++) {
-  //   std::cout << observation_vector[i] << " ";
-  // }
-  // std::cout << std::endl;
-
-  // // print out normalization mean
-  // std::cout << "normalization mean: ";
-  // for (int i = 0; i < int(normalization_mean.size()); i++) {
-  //   std::cout << normalization_mean[i] << " ";
-  // }
-  // std::cout << std::endl;
-
-  // // print out normalization var
-  // std::cout << "normalization var: ";
-  // for (int i = 0; i < int(normalization_var.size()); i++) {
-  //   std::cout << normalization_var[i] << " ";
-  // }
-  // std::cout << std::endl;
 
   for (int i = 0; i < int(observation_vector.size()); i++) {
     float normalized = (observation_vector[i] - normalization_mean[i]) / sqrt(normalization_var[i] + normalization_epsilon);

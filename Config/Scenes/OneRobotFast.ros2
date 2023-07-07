@@ -14,7 +14,7 @@
     </Compound>
 
       <Compound name="robots">
-    <Body ref="Nao" name="robot5">
+    <Body ref="Nao" name="robot2">
       <Translation x="0.9" z="320mm"/>
       <Rotation z="180degree"/>
     </Body>
