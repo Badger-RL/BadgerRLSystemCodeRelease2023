@@ -357,7 +357,7 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] > -4000 || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
                 shield = true;
             }
 
