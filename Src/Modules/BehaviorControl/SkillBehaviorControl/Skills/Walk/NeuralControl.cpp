@@ -357,7 +357,7 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] > -4000 || predictedPosition[0] < -4750  || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
                 shield = true;
             }
 
@@ -473,10 +473,51 @@ public:
                     theFieldBall.recentBallPositionOnField().x(),
                     theFieldBall.recentBallPositionOnField().y()}});
             }else{
-                if (algorithm->getActionLength() == 3){
+                // Check if we are close enough to the ball to kick it and close to the goal
+                // Also check if opponents are in a 30 degree cone in front of us
+                // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
+                bool kicking = false;
+                if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100)
+                {
+                    // Check if we are close enough to the ball to kick it
+                    // Calculate distance to ball
+                    float distanceToBall = (theFieldBall.positionOnField - theRobotPose.translation).norm();
+                    // print distance to ball
+                    std::cout << "Distance to ball: " << distanceToBall << std::endl;
+                    if (distanceToBall < 700.0f)
+                    {
+
+                        bool opponentsInCone = false;
+                        for (auto & obstacle : theObstacleModel.obstacles)
+                        {
+                            if(!obstacle.isTeammate()){
+                                if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
+                                {
+                                    opponentsInCone = true;
+                                    std::cout << "Opponents in cone" << std::endl;
+                                }
+                            }
+                        }
+                        // Check facing goal (center within 30 degrees of center of goal (4500, 0))
+                        bool isFacingGoal = isFacingPoint(4500 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+
+                        if (!opponentsInCone && isFacingGoal)
+                        {
+                            // Kick the ball
+                            theWalkToBallAndKickSkill({
+                                .targetDirection = 0_deg,
+                                .kickType = KickInfo::walkForwardsRightLong,
+                                .kickLength = 1000.f,
+                                
+                            });
+                            kicking = true;
+                        }
+                    }
+                }
+                if (algorithm->getActionLength() == 3 && !kicking){
                     theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
                 }
-                else if(algorithm->getActionLength() == 4)
+                else if(algorithm->getActionLength() == 4 && !kicking)
                 {
                     if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 400.0 && role != 2)
                     {
@@ -502,7 +543,7 @@ public:
                     }
                     
                 }
-                else
+                else if (!kicking)
                 {
                     std::cout << "unsupported action space" << std::endl;
                 }
