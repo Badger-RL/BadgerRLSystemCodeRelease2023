@@ -506,6 +506,7 @@ public:
 //
 //        }
         
+        role = 3;
         
         
         if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
@@ -536,7 +537,7 @@ public:
                     0.0f,
                     0.0f}});
 
-                if (spinningTime > 800) {
+                if (spinningTime > 400) {
                     spinning = false;
                     standingTime = 0;
                     spinningTime = 0;
@@ -547,7 +548,7 @@ public:
             {
                 // stand still
                 theStandSkill();
-                if (standingTime > 600)
+                if (standingTime > 300)
                 {
                 spinning = true;
                 standingTime = 0;
