@@ -477,7 +477,7 @@ public:
                 // Also check if opponents are in a 30 degree cone in front of us
                 // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
                 bool kicking = false;
-                if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100)
+                if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100 && role == 2)
                 {
                     // Check if we are close enough to the ball to kick it
                     // Calculate distance to ball
