@@ -404,7 +404,7 @@ public:
         if (RLConfig::shieldEnabled)
         {
             
-            if (predictedPosition[0] < -4600 || predictedPosition[0] > 4600 || predictedPosition[1] > 3050 || predictedPosition[1] < -3050){
+            if (predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
                 shield = true;
             }
             if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
@@ -530,7 +530,7 @@ public:
                 0.0f,
                 0.0f}});
         }
-        else if(RLConfig::shieldEnabled && shield){
+        else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
             // std::cout << "Shielding activated" << std::endl;
 //            if (theGameState.playerNumber != 1){
 //                if((json::has_key(preRole, std::to_string(theGameState.playerNumber))) && (preRole[std::to_string(theGameState.playerNumber)] == 3)){
