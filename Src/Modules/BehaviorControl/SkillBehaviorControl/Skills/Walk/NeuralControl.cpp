@@ -357,7 +357,7 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
                 shield = true;
             }
 
@@ -478,7 +478,57 @@ public:
                 // Check if we are close enough to the ball to kick it and close to the goal
                 // Also check if opponents are in a 30 degree cone in front of us
                 // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
-                if (theRobotPose 
+                if (theRobotPose.translation.x > 4500 - 1300 && theRobotPose.translation.x < 4500 && theRobotPose.translation.y > -1100 && theRobotPose.translation.y < 1100)
+                {
+                    // Check if we are close enough to the ball to kick it
+                    // Calculate distance to ball
+                    float distanceToBall = (theFieldBall.positionOnField - theRobotPose.translation).norm();
+                    if (distanceToBall < 200.0f)
+                    {
+
+                        bool opponentsInCone = false;
+                        for (auto & obstacle : theObstacleModel.obstacles)
+                        {
+                            if(!obstacle.isTeammate()){
+                                if (obstacle.center.norm() < 2000 && obstacle.center.norm() > 500 && obstacle.center.angle() < 30_deg && obstacle.center.angle() > -30_deg)
+                                {
+                                    opponentsInCone = true;
+                                }
+                            }
+                        }
+                        if (!opponentsInCone)
+                        {
+                            // Kick the ball
+                            theWalkToBallAndKickSkill({
+                                .targetDirection = 0_deg,
+                                .kickType = KickInfo::walkForwardsRightLong,
+                                .kickLength = 1000.f,
+                                
+                            });
+                        }
+                    }
+                }
+                else if (theFieldBall.positionOnField.x() < 4500 && theFieldBall.positionOnField.x() > 4300 && theFieldBall.positionOnField.y() < 800 && theFieldBall.positionOnField.y() > -800)
+                {
+                    // Check if opponents are in a 30 degree cone in front of us
+                    bool opponentsInCone = false;
+                    for (auto & teammate : theTeamData.teammates)
+                    {
+                        if (teammate.number > theGameState.playerNumber)
+                        {
+                            if (teammate.pose.translation.x() > theRobotPose.translation.x() && teammate.pose.translation.y() < theRobotPose.translation.y() + 300 && teammate.pose.translation.y() > theRobotPose.translation.y() - 300)
+                            {
+                                opponentsInCone = true;
+                            }
+                        }
+                    }
+                    if (!opponentsInCone)
+                    {
+                        // Kick the ball
+                        theWalkToBallAndKickSkill({
+                            .targetDirection = 0_deg,
+                            .kickType = KickInfo::walkForwardsRightLong,
+                            .kickLength = 1000
 
                 
                 if (algorithm->getActionLength() == 3){
