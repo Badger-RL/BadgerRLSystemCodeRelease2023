@@ -26,3 +26,18 @@ std::vector<float> get_relative_observation(std::vector<float> agent_loc, std::v
 
     return {xprime/5200, yprime/3500, std::sin(angle), std::cos(angle)};
 }
+
+
+bool isFacingPoint(float x, float y, float angle) {
+    // Calculate the angle between the robot's position and the target point
+    float angleBetween = std::atan2(y, x) - angle;
+    // Normalize the angle to be between -180 and 180 degrees
+    while (angleBetween > M_PI) {
+        angleBetween -= 2 * M_PI;
+    }
+    while (angleBetween < -M_PI) {
+        angleBetween += 2 * M_PI;
+    }
+    // Check if the angle is within 30 degrees of the target angle
+    return std::abs(angleBetween) < M_PI / 6;
+}
