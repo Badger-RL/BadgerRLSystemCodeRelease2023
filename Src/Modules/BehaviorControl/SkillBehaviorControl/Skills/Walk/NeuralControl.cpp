@@ -494,7 +494,7 @@ public:
                             }
                         }
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
-                        bool isFacingGoal = isFacingPoint(4500 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+                        bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
 
                         if (!opponentsInCone && isFacingGoal)
                         {

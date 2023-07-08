@@ -39,5 +39,5 @@ bool isFacingPoint(float x, float y, float angle) {
         angleBetween += 2 * M_PI;
     }
     // Check if the angle is within 30 degrees of the target angle
-    return std::abs(angleBetween) < M_PI / 6;
+    return std::abs(angleBetween) < M_PI / 8;
 }
