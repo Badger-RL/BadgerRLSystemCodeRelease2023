@@ -72,7 +72,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-bool isSimRobot = false;
+bool isSimRobot = true;
 bool robotPreCollision = false;
 bool ballLost = false;
 bool standing = false;
@@ -398,12 +398,12 @@ public:
         
         bool deadSpot = false;
         
-        if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2 && !shield)
+        if (theFieldBall.timeSinceBallWasSeen > 4000 && !shield)
         {
             
-            int maxSpinTime = role == 1 || role == 3 ? 400 : 400;
-            int maxStandTime = role == 1 || role == 3 ? 300 : 300;
-            int maxBallSearchWalkTime = role == 1 || role == 3 ? 400 : 400;
+            int maxSpinTime = role == 1 || role == 3 ? 400 : 500;
+            int maxStandTime = role == 1 || role == 3 ? 300 : 100;
+            int maxBallSearchWalkTime = role == 1 || role == 3 ? 400 : 200;
 
             // Positions to return to
             Vector2f return_point;
@@ -419,7 +419,7 @@ public:
 
         // Get distance to return point
         float distance_to_return = (theRobotPose.translation - return_point).norm();
-        bool inReturnPos = distance_to_return < 400.0f;
+        bool inReturnPos = distance_to_return < 1000.0f;
 
             
         if (ballSearchWalk && !inReturnPos){
@@ -442,11 +442,8 @@ public:
                         ballSearchWalkTime = 0;
                         spinningTime = 0;
                         standingTime = 0;
-                        std::cout << "Ball search walk time exceeded, spinning" << std::endl;
                     }
                 ballSearchWalkTime += 1;
-
-                //print ballsearchwalktime
             }
             else if (standing) {
                 // stand still
@@ -483,6 +480,8 @@ public:
                 }
                 spinningTime += 1;
             }
+            
+            theFieldBall.recentBallPositions(<#Vector2f &ballPositionOnField#>, <#Vector2f &ballPositionRelative#>)
         }
         else if(RLConfig::shieldEnabled && shield && role!= 2){
             if(theGameState.playerNumber == 1) {
@@ -519,7 +518,8 @@ public:
                 // Also check if opponents are in a 30 degree cone in front of us
                 // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
                 bool kicking = false;
-                if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100 && role == 2)
+                // if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100 && (role == 2 || role == 3))
+                if (theRobotPose.translation.x() > -2000 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -2000 && theRobotPose.translation.y() < 2000 && (role == 2 || role == 3))
                 {
                     // Check if we are close enough to the ball to kick it
                     // Calculate distance to ball
@@ -529,15 +529,15 @@ public:
                     {
                         
                         bool opponentsInCone = false;
-                        for (auto & obstacle : theObstacleModel.obstacles)
-                        {
-                            if(!obstacle.isTeammate()){
-                                if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
-                                {
-                                    opponentsInCone = true;
-                                }
-                            }
-                        }
+                        // for (auto & obstacle : theObstacleModel.obstacles)
+                        // {
+                        //     if(!obstacle.isTeammate()){
+                        //         if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
+                        //         {
+                        //             opponentsInCone = true;
+                        //         }
+                        //     }
+                        // }
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
                         bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
                         
