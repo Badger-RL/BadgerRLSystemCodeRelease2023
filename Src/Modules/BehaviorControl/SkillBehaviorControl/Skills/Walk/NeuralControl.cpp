@@ -75,9 +75,12 @@ std::vector<int> robotNum;
 bool isSimRobot = false;
 bool robotPreCollision = false;
 bool ballLost = false;
+bool standing = false;
 int standingTime = 0;
 bool spinning = false;
 int spinningTime = 0;
+bool ballSearchWalk = false;
+int ballSearchWalkTime = 0;
 
 json::object preRole = json::object{}; // This is used to record the role assigned by role assignment method.
 
@@ -230,25 +233,15 @@ public:
             }
         }
         
-        
-        // // assign role based on num of robots closer
-        // if(count >= 2) {
-        //     // Defender
-        //     role = 3;
-        // } else {
-        //     // Attacker
-        //     role = 2;
-        // }
-        
         if (theGameState.playerNumber == 1){
             role = 1;
             algorithm = & goalKeeperKickAlgorithm;
         }
-        else if (theGameState.playerNumber == 2){
+        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
             role = 3;
-            algorithm = & defenderKickAlgorithm;
+            algorithm = & attackerAlgorithm;
         }
-        else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5 || theGameState.playerNumber == 3) {
+        else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5) {
             role = 2;
             algorithm = & attackerAlgorithm;
         }
@@ -279,10 +272,10 @@ public:
         
         std::vector<float> inputObservation;
         
-        if (RLConfig::normalization && (role == 1 || role == 3)) {
+        if (RLConfig::normalization && (role == 1)) {
             inputObservation = algorithm->normalizeObservation(rawObservation);
         }
-        else if (role == 2) {
+        else if (role == 2 || role == 3) {
             inputObservation = {};
             
             // origin,
@@ -407,55 +400,89 @@ public:
         
         if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2 && !shield)
         {
-            // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
-            // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
             
-            // Get angle to origin
-            float angle_pos = atan2(0 - theRobotPose.translation.y(), 0 - theRobotPose.translation.x());
+            int maxSpinTime = role == 1 || role == 3 ? 400 : 400;
+            int maxStandTime = role == 1 || role == 3 ? 300 : 300;
+            int maxBallSearchWalkTime = role == 1 || role == 3 ? 400 : 400;
+
+            // Positions to return to
+            Vector2f return_point;
+            if (role == 1)
+                return_point = Vector2f(-4400, 0);
+            else if (role == 2)
+                return_point = Vector2f(0, 0);
+            else if (role == 3)
+                return_point = Vector2f(-3500, 0);
+
+            // Get angle to origin (0, 0)
+            float angle_pos = std::atan2(theRobotPose.translation.y(), theRobotPose.translation.x());
+
+        // Get distance to return point
+        float distance_to_return = (theRobotPose.translation - return_point).norm();
+        bool inReturnPos = distance_to_return < 400.0f;
+
             
-            // Turn until facing the origin (within 0.2 rads)
-            if (theRobotPose.rotation < angle_pos - 0.2 && !spinning)
-            {
-                theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                    0.0f,
-                    0.0f}});
+        if (ballSearchWalk && !inReturnPos){
+             //print ballsearchwalktime
+                // Get relative obs to return point
+                std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
+                std::vector<float> return_loc = {return_point.x(), return_point.y()};
+
+                std::vector<float> result = get_relative_observation(agent_loc, return_loc);
+                result[0] = result[0] * 5200/2000;
+                result[1] = result[1] * 3500/2000;
+
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    result[0],
+                    result[1]}});
+
+                if (ballSearchWalkTime > maxBallSearchWalkTime) {
+                        spinning = true;
+                        ballSearchWalk = false;
+                        ballSearchWalkTime = 0;
+                        spinningTime = 0;
+                        standingTime = 0;
+                        std::cout << "Ball search walk time exceeded, spinning" << std::endl;
+                    }
+                ballSearchWalkTime += 1;
+
+                //print ballsearchwalktime
             }
-            else if (theRobotPose.rotation > angle_pos + 0.2 && !spinning)
-            {
-                theWalkAtRelativeSpeedSkill({.speed = {-0.8f,
-                    0.0f,
-                    0.0f}});
+            else if (standing) {
+                // stand still
+                theStandSkill();
+                if (standingTime > maxStandTime)
+                {
+                    ballSearchWalk = true;
+                    standing = false;
+                    spinning = false;
+
+                    if (inReturnPos) {
+                        ballSearchWalk = false;
+                        spinning = true;
+                    }
+
+                    standingTime = 0;
+                    spinningTime = 0;
+                    ballSearchWalkTime = 0;
+                }
+                standingTime += 1;
             }
-            else if (spinning) {
+            else {
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                     0.0f,
                     0.0f}});
                 
-                if (spinningTime > 400) {
+                if (spinningTime > maxSpinTime) {
                     spinning = false;
+                    ballSearchWalk = false;
+                    standing = true;
                     standingTime = 0;
                     spinningTime = 0;
+                    ballSearchWalkTime = 0;
                 }
                 spinningTime += 1;
             }
-            else
-            {
-                // stand still
-                theStandSkill();
-                if (standingTime > 300)
-                {
-                    spinning = true;
-                    standingTime = 0;
-                    spinningTime = 0;
-                }
-                standingTime += 1;
-            }
-            
-        }
-        else  if (theFieldBall.timeSinceBallWasSeen > 4000 && role == 2){
-            theWalkAtRelativeSpeedSkill({.speed = {0.8f,
-                0.0f,
-                0.0f}});
         }
         else if(RLConfig::shieldEnabled && shield && role!= 2){
             if(theGameState.playerNumber == 1) {
@@ -541,7 +568,7 @@ public:
                             
                         });
                     }
-                    else if (role == 2){
+                    else if (role == 2 || role == 3){
                         float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                         float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
                         if (action_1 > 0){
