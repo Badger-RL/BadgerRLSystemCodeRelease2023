@@ -72,6 +72,8 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
+json::object returningFlags = json::object{};
+
 bool isSimRobot = true;
 bool robotPreCollision = false;
 bool ballLost = false;
@@ -343,23 +345,37 @@ public:
         
         bool shield = false;
         bool obstacles[8] = {false, false, false, false,false, false, false,false};
+        
         if (RLConfig::shieldEnabled)
         {
+            
+            
+            if (!(json::has_key(returningFlags,std::to_string(theGameState.playerNumber))))
+            {
+                returningFlags.insert(std::to_string(theGameState.playerNumber), false);
+            }
+            
+
             
             if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
                 shield = true;
             }
-            if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
-            {
-                shield = true;
-            }
-            if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
-            {
-                shield = true;
-            }
+//            if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
+//            {
+//                shield = true;
+//            }
+//            if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
+//            {
+//                shield = true;
+//            }
             if(predictedPosition[0] > -3900 || predictedPosition[0] < -4750  || predictedPosition[1] > 640 || predictedPosition[1] < -640){
                 shield = true;
             }
+            if((predictedPosition[0] > -1500 || predictedPosition[0] < -4600  || predictedPosition[1] > 3000 || predictedPosition[1] < -3000 ) && theGameState.playerNumber==2){
+                std::cout << "Shielding" << std::endl;
+                shield = true;
+            }
+            
             
             if(isSimRobot){
                 switch(theGameState.playerNumber){
@@ -395,8 +411,8 @@ public:
         }
         
         bool deadSpot = false;
-
-     if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2 && !shield)
+        
+        if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2 && !shield)
         {
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
             // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
@@ -448,13 +464,22 @@ public:
                 0.0f,
                 0.0f}});
         }
-        else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
-            std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
-            std::vector<float> ball_loc = {-4400, 0};
-            std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
-            theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                result[0]*5200/375 ,
-                result[1] * 3500 /250}});
+        else if(RLConfig::shieldEnabled && shield && role!= 2){
+            if(theGameState.playerNumber == 1) {
+                std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
+                std::vector<float> ball_loc = {-4400, 0};
+                std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    result[0]*5200 ,
+                    result[1] * 3500}});
+            }else{
+                std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
+                std::vector<float> ball_loc = {-2700, 0};
+                std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
+                theWalkAtRelativeSpeedSkill({.speed = {0.0f,
+                    result[0]*5200/375 ,
+                    result[1] * 3500 /250}});
+            }
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
@@ -495,7 +520,7 @@ public:
                         }
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
                         bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
-
+                        
                         if (!opponentsInCone && isFacingGoal)
                         {
                             // Kick the ball
@@ -666,14 +691,14 @@ bool NeuralControlImpl::preCollision(std::vector<ObstacleVector>& Obstacle, floa
 
 void NeuralControlImpl::addObstaclesSimRobot(std::vector<ObstacleVector>& Obstacle){
     
-    for (auto & obstacle : theObstacleModel.obstacles)
-    {
-        // if(!obstacle.isTeammate()){
-        //     ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
-        //     Obstacle.push_back(o);
-        // }
-        
-    }
+//    for (auto & obstacle : theObstacleModel.obstacles)
+//    {
+//         if(!obstacle.isTeammate() && !obstacle.isOpponent()){
+//             ObstacleVector o{obstacle.center.x() + theRobotPose.translation.x(), obstacle.center.y() + theRobotPose.translation.y(), false};
+//             Obstacle.push_back(o);
+//         }
+//        
+//    }
     for(auto& teammate: theTeamData.teammates){
         ObstacleVector o{teammate.theRobotPose.translation.x(), teammate.theRobotPose.translation.y(), true};
         Obstacle.push_back(o);
