@@ -228,7 +228,7 @@ public:
             if(teammate.number > theGameState.playerNumber && teammate.number != 1) {
                 count+=1;
             }
-        }        
+        }
         
         
         // // assign role based on num of robots closer
@@ -239,7 +239,7 @@ public:
         //     // Attacker
         //     role = 2;
         // }
-
+        
         if (theGameState.playerNumber == 1){
             role = 1;
             algorithm = & goalKeeperKickAlgorithm;
@@ -252,7 +252,7 @@ public:
             role = 2;
             algorithm = & attackerAlgorithm;
         }
-
+        
         
         if (algorithm->getCollectNewPolicy()) {
             algorithm->waitForNewPolicy();
@@ -346,7 +346,7 @@ public:
         if (RLConfig::shieldEnabled)
         {
             
-            if (predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100){
+            if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
                 shield = true;
             }
             if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
@@ -357,10 +357,10 @@ public:
             {
                 shield = true;
             }
-            if(predictedPosition[0] > -4000 || predictedPosition[0] > -4750 || (predictedPosition[1] > 600 || predictedPosition[1] < -600)){
+            if(predictedPosition[0] > -3900 || predictedPosition[0] < -4750  || predictedPosition[1] > 640 || predictedPosition[1] < -640){
                 shield = true;
             }
-
+            
             if(isSimRobot){
                 switch(theGameState.playerNumber){
                     case 1:
@@ -396,14 +396,14 @@ public:
         
         bool deadSpot = false;
 
-     if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
+     if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2 && !shield)
         {
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
             // float angle_pos = atan2(position[1] - theRobotPose.translation.y(), position[0] - theRobotPose.translation.x());
-
+            
             // Get angle to origin
             float angle_pos = atan2(0 - theRobotPose.translation.y(), 0 - theRobotPose.translation.x());
-
+            
             // Turn until facing the origin (within 0.2 rads)
             if (theRobotPose.rotation < angle_pos - 0.2 && !spinning)
             {
@@ -421,7 +421,7 @@ public:
                 theWalkAtRelativeSpeedSkill({.speed = {0.8f,
                     0.0f,
                     0.0f}});
-
+                
                 if (spinningTime > 400) {
                     spinning = false;
                     standingTime = 0;
@@ -435,13 +435,13 @@ public:
                 theStandSkill();
                 if (standingTime > 300)
                 {
-                spinning = true;
-                standingTime = 0;
-                spinningTime = 0;
+                    spinning = true;
+                    standingTime = 0;
+                    spinningTime = 0;
                 }
                 standingTime += 1;
             }
-
+            
         }
         else  if (theFieldBall.timeSinceBallWasSeen > 4000 && role == 2){
             theWalkAtRelativeSpeedSkill({.speed = {0.8f,
@@ -449,12 +449,12 @@ public:
                 0.0f}});
         }
         else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
-                Vector2f PredictedPoseVector(-4500, 0);
-                double dist = (theRobotPose.translation - PredictedPoseVector).norm();
-                Vector2f unitVector = Vector2f((theRobotPose.translation -PredictedPoseVector ).x()/dist,(theRobotPose.translation - PredictedPoseVector).y()/dist);
+            std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
+            std::vector<float> ball_loc = {-4700, 0};
+            std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                -80*unitVector.x() ,
-                -80*unitVector.y() }});
+                result[0]*5200/750 ,
+                result[1] * 3500 /500}});
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
@@ -482,7 +482,7 @@ public:
                     // print distance to ball
                     if (distanceToBall < 700.0f)
                     {
-
+                        
                         bool opponentsInCone = false;
                         for (auto & obstacle : theObstacleModel.obstacles)
                         {
@@ -495,7 +495,7 @@ public:
                         }
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
                         bool isFacingGoal = isFacingPoint(4500 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
-
+                        
                         if (!opponentsInCone && isFacingGoal)
                         {
                             // Kick the ball
@@ -529,7 +529,7 @@ public:
                         if (action_1 > 0){
                             action_1 = action_1 * 1.6 + 0.2;
                         }
-                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);                        
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
                         theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
                     }
                     else{
