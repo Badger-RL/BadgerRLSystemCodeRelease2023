@@ -361,7 +361,7 @@ public:
 //            {
 //                shield = true;
 //            }
-            if(predictedPosition[0] > -3900 || predictedPosition[0] < -4750  || predictedPosition[1] > 640 || predictedPosition[1] < -640){
+            if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750) && theGameState.playerNumber == 1){
                 shield = true;
             }
             if((predictedPosition[0] > -1500 || predictedPosition[0] < -4600  || predictedPosition[1] > 3000 || predictedPosition[1] < -3000 ) && theGameState.playerNumber==2){
