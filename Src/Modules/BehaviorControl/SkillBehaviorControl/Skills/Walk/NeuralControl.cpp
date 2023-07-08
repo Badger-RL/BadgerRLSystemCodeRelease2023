@@ -450,11 +450,11 @@ public:
         }
         else if(RLConfig::shieldEnabled && shield && theGameState.playerNumber == 1){
             std::vector<float> agent_loc = {theRobotPose.translation.x(), theRobotPose.translation.y(), theRobotPose.rotation};
-            std::vector<float> ball_loc = {-4700, 0};
+            std::vector<float> ball_loc = {-4400, 0};
             std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
             theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                result[0]*5200/750 ,
-                result[1] * 3500 /500}});
+                result[0]*5200/375 ,
+                result[1] * 3500 /250}});
         }
         else if(robotPreCollision){
             std::pair<int, int> index = startIndexOfLongestConsecutive0s(obstacles, sizeof(obstacles)/sizeof(obstacles[0]));
