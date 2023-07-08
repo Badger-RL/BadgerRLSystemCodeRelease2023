@@ -586,7 +586,7 @@ public:
                         theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
                     }
                     else{
-                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
+                        theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), 2.0f * (float)(algorithm->getActionMeans()[2])}});
                     }
                     
                 }
