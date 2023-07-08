@@ -341,25 +341,31 @@ public:
         {
             
             
-         
+            
             if(role == 1){
-//                if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
-//                    shield = true;
-//                }
-//                if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800 )
-//                {
-//                    shield = true;
-//                }else if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
-//                {
-//                    shield = true;
-//                }
+                //                if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
+                //                    shield = true;
+                //                }
+                //                if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800 )
+                //                {
+                //                    shield = true;
+                //                }else if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
+                //                {
+                //                    shield = true;
+                //                }
                 if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750)){
                     shield = true;
                 }
             }else if(role == 3){
                 if(theFieldBall.recentBallPositionOnField().x() > 0){
-                    if((predictedPosition[0] > -1000 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
-                        shield = true;
+                    if(theGameState.playerNumber == 2){
+                        if((predictedPosition[0] > -1100 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
+                            shield = true;
+                        }
+                    }else if(theGameState.playerNumber == 3){
+                        if((predictedPosition[0] > -2200 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
+                            shield = true;
+                        }
                     }
                 }else{
                     if((predictedPosition[0] > 0 || predictedPosition[0] < -4600  || predictedPosition[1] > 3100 || predictedPosition[1] < -3100 )){
@@ -401,6 +407,7 @@ public:
             
         }
         
+
         bool deadSpot = false;
         
         if (theFieldBall.timeSinceBallWasSeen > 4000 && !shield)
@@ -533,19 +540,14 @@ public:
                     {
                         
                         bool opponentsInCone = false;
-                         for (auto & obstacle : theObstacleModel.obstacles)
-                         {
-                             if(obstacle.isOpponent()){
-                                 std::cout << "Robot " << theGameState.playerNumber << std::endl;
-                                 std::cout << obstacle.center.x() << ", " << obstacle.center.y() << std::endl;
-                             }
+
                         //     if(!obstacle.isTeammate()){
                         //         if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
                         //         {
                         //             opponentsInCone = true;
                         //         }
                         //     }
-                         }
+                         
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
                         bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
                         
