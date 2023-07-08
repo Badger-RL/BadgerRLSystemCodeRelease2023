@@ -342,26 +342,31 @@ public:
             
             
          
-            
-            if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
-                shield = true;
+            if(theGameState.playerNumber == 1){
+//                if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
+//                    shield = true;
+//                }
+//                if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800 )
+//                {
+//                    shield = true;
+//                }else if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
+//                {
+//                    shield = true;
+//                }
+                if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750) && theGameState.playerNumber == 1){
+                    shield = true;
+                }
+            }else if(theGameState.playerNumber == 2){
+                if(theFieldBall.recentBallPositionOnField().x() > 0){
+                    if((predictedPosition[0] > -400 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 ) && theGameState.playerNumber==2){
+                        shield = true;
+                    }
+                }else{
+                    if((predictedPosition[0] > 0 || predictedPosition[0] < -4600  || predictedPosition[1] > 3100 || predictedPosition[1] < -3100 )){
+                        shield = true;
+                    }
+                }
             }
-//            if (predictedPosition[0] > 4300 && predictedPosition[1] > 600 && predictedPosition[1] < 800)
-//            {
-//                shield = true;
-//            }
-//            if (predictedPosition[0] > 4300 && predictedPosition[1] < -600 && predictedPosition[1] > -800)
-//            {
-//                shield = true;
-//            }
-            if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750) && theGameState.playerNumber == 1){
-                shield = true;
-            }
-            if((predictedPosition[0] > -1500 || predictedPosition[0] < -4600  || predictedPosition[1] > 3000 || predictedPosition[1] < -3000 ) && theGameState.playerNumber==2){
-                std::cout << "Shielding" << std::endl;
-                shield = true;
-            }
-            
             
             if(isSimRobot){
                 switch(theGameState.playerNumber){
@@ -481,7 +486,6 @@ public:
                 spinningTime += 1;
             }
             
-            theFieldBall.recentBallPositions(<#Vector2f &ballPositionOnField#>, <#Vector2f &ballPositionRelative#>)
         }
         else if(RLConfig::shieldEnabled && shield && role!= 2){
             if(theGameState.playerNumber == 1) {
@@ -496,8 +500,8 @@ public:
                 std::vector<float> ball_loc = {-2700, 0};
                 std::vector<float> result= get_relative_observation(agent_loc, ball_loc);
                 theWalkAtRelativeSpeedSkill({.speed = {0.0f,
-                    result[0]*5200/375 ,
-                    result[1] * 3500 /250}});
+                    result[0]*5200 ,
+                    result[1] * 3500}});
             }
         }
         else if(robotPreCollision){
@@ -529,15 +533,19 @@ public:
                     {
                         
                         bool opponentsInCone = false;
-                        // for (auto & obstacle : theObstacleModel.obstacles)
-                        // {
+                         for (auto & obstacle : theObstacleModel.obstacles)
+                         {
+                             if(obstacle.isOpponent()){
+                                 std::cout << "Robot " << theGameState.playerNumber << std::endl;
+                                 std::cout << obstacle.center.x() << ", " << obstacle.center.y() << std::endl;
+                             }
                         //     if(!obstacle.isTeammate()){
                         //         if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
                         //         {
                         //             opponentsInCone = true;
                         //         }
                         //     }
-                        // }
+                         }
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
                         bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
                         
@@ -562,7 +570,7 @@ public:
                     if (algorithm->getActionMeans()[3] > 0.0 && (theFieldBall.positionOnField - theRobotPose.translation).norm() < 400.0 && role != 2)
                     {
                         theWalkToBallAndKickSkill({
-                            .targetDirection = 0_deg,
+                            .targetDirection = 45_deg,
                             .kickType = KickInfo::walkForwardsRightLong,
                             .kickLength = 1000.f,
                             
