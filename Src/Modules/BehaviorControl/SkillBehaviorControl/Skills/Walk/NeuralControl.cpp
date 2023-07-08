@@ -72,9 +72,7 @@ json::object timeData = json::object{};
 json::object prevObservationData = json::object{};
 std::vector<int> robotNum;
 
-json::object returningFlags = json::object{};
-
-bool isSimRobot = true;
+bool isSimRobot = false;
 bool robotPreCollision = false;
 bool ballLost = false;
 int standingTime = 0;
@@ -350,12 +348,7 @@ public:
         {
             
             
-            if (!(json::has_key(returningFlags,std::to_string(theGameState.playerNumber))))
-            {
-                returningFlags.insert(std::to_string(theGameState.playerNumber), false);
-            }
-            
-
+         
             
             if ((predictedPosition[0] < -4670 || predictedPosition[0] > 4670 || predictedPosition[1] > 3100 || predictedPosition[1] < -3100) && theGameState.playerNumber!=1){
                 shield = true;
