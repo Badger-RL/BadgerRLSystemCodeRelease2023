@@ -279,10 +279,10 @@ public:
         
         std::vector<float> inputObservation;
         
-        if (RLConfig::normalization && role == 1) {
+        if (RLConfig::normalization && (role == 1 || role == 3)) {
             inputObservation = algorithm->normalizeObservation(rawObservation);
         }
-        else if (role == 2 || role == 3) {
+        else if (role == 2) {
             inputObservation = {};
             
             // origin,
@@ -395,10 +395,7 @@ public:
         }
         
         bool deadSpot = false;
-        
-        if(theGameState.playerNumber == 1){
-            std::cout << theRobotPose.translation.x() << ", " << theRobotPose.translation.y() << std::endl;
-        }
+
      if (theFieldBall.timeSinceBallWasSeen > 4000 && role != 2)
         {
             // Find angle and x and y to input into walkAtRelativeSpeed (max speed is 1.0)
@@ -483,7 +480,6 @@ public:
                     // Calculate distance to ball
                     float distanceToBall = (theFieldBall.positionOnField - theRobotPose.translation).norm();
                     // print distance to ball
-                    std::cout << "Distance to ball: " << distanceToBall << std::endl;
                     if (distanceToBall < 700.0f)
                     {
 
@@ -494,7 +490,6 @@ public:
                                 if (isFacingPoint(obstacle.center.x() - theRobotPose.translation.x(), obstacle.center.y() - theRobotPose.translation.y(), theRobotPose.rotation))
                                 {
                                     opponentsInCone = true;
-                                    std::cout << "Opponents in cone" << std::endl;
                                 }
                             }
                         }
@@ -528,7 +523,7 @@ public:
                             
                         });
                     }
-                    else if (role == 2 || role == 3){
+                    else if (role == 2){
                         float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                         float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
                         if (action_1 > 0){
@@ -539,7 +534,6 @@ public:
                     }
                     else{
                         theWalkAtRelativeSpeedSkill({.speed = {(float)(algorithm->getActionMeans()[0]) * 0.4f, (float)(algorithm->getActionMeans()[1]) > 1.0f ? 1.0f : (float)(algorithm->getActionMeans()[1]), (float)(algorithm->getActionMeans()[2])}});
-                        
                     }
                     
                 }
