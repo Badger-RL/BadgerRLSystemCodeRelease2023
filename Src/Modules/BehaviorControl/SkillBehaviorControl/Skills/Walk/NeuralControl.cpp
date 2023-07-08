@@ -353,12 +353,12 @@ public:
 //                {
 //                    shield = true;
 //                }
-                if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750) && theGameState.playerNumber == 1){
+                if((predictedPosition[0] > -3500 || predictedPosition[0] < -4750  || predictedPosition[1] > 750 || predictedPosition[1] < -750)){
                     shield = true;
                 }
             }else if(role == 3){
                 if(theFieldBall.recentBallPositionOnField().x() > 0){
-                    if((predictedPosition[0] > -1000 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 ) && theGameState.playerNumber==2){
+                    if((predictedPosition[0] > -1000 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
                         shield = true;
                     }
                 }else{
