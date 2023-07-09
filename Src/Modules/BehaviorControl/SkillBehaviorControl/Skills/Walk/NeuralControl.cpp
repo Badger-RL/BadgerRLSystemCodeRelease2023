@@ -237,11 +237,11 @@ public:
             role = 1;
             algorithm = & goalKeeperKickAlgorithm;
         }
-        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
+        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 4) {
             role = 3;
             algorithm = & attackerAlgorithm;
         }
-        else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5) {
+        else if (theGameState.playerNumber == 3 || theGameState.playerNumber == 5) {
             role = 2;
             algorithm = & attackerAlgorithm;
         }
@@ -362,7 +362,7 @@ public:
                         if((predictedPosition[0] > -1100 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
                             shield = true;
                         }
-                    }else if(theGameState.playerNumber == 3){
+                    }else if(theGameState.playerNumber == 4){
                         if((predictedPosition[0] > -2200 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
                             shield = true;
                         }
@@ -423,8 +423,13 @@ public:
                 return_point = Vector2f(-4400, 0);
             else if (role == 2)
                 return_point = Vector2f(0, 0);
-            else if (role == 3)
-                return_point = Vector2f(-3500, 0);
+            else if (role == 3) {
+                if (theGameState.playerNumber == 2)
+                    return_point = Vector2f(-3500, 100);
+                else
+                    return_point = Vector2f(-3500, -100);
+                
+            }
 
             // Get angle to origin (0, 0)
             float angle_pos = std::atan2(theRobotPose.translation.y(), theRobotPose.translation.x());
@@ -529,8 +534,15 @@ public:
                 // Also check if opponents are in a 30 degree cone in front of us
                 // If we are in box [4500 - 1300 to 4500] x [-1100 to 1100]
                 bool kicking = false;
+                bool possibleKick = false;
+                if (role == 2 && ((theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100))) {
+                    possibleKick = true;
+                }
+                else if (role == 3 && (theRobotPose.translation.x() > -3500 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -2000 && theRobotPose.translation.y() < 2000)) {
+                    possibleKick = true;
+                }
                 // if (theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100 && (role == 2 || role == 3))
-                if (theRobotPose.translation.x() > -2000 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -2000 && theRobotPose.translation.y() < 2000 && (role == 2 || role == 3))
+                if (possibleKick)
                 {
                     // Check if we are close enough to the ball to kick it
                     // Calculate distance to ball
@@ -549,9 +561,28 @@ public:
                         //     }
                          
                         // Check facing goal (center within 30 degrees of center of goal (4500, 0))
-                        bool isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+                        bool isFacingGoal;
+                        isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+
+                        // if (role == 2)
+                        //     isFacingGoal = isFacingPoint(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+                        // else
+                        //     isFacingGoal = isFacingMidfield(4700 - theRobotPose.translation.x(), 0 - theRobotPose.translation.y(), theRobotPose.rotation);
+
+
+                        if (!opponentsInCone && isFacingGoal && role == 2 && theRobotPose.translation.x() > 2850 && theRobotPose.translation.x() < 4500 && theRobotPose.translation.y() > -1100 && theRobotPose.translation.y() < 1100)
+                        {
+                            // Kick the ball
+                            theWalkToBallAndKickSkill({
+                                .targetDirection = 0_deg,
+                                .kickType = KickInfo::walkForwardsRightLong,
+                                .kickLength = 1000.f,
+                                
+                            });
+                            kicking = true;
+                        }
                         
-                        if (!opponentsInCone && isFacingGoal)
+                        if (!opponentsInCone && isFacingGoal && role == 3)
                         {
                             // Kick the ball
                             theWalkToBallAndKickSkill({
@@ -578,11 +609,20 @@ public:
                             
                         });
                     }
-                    else if (role == 2 || role == 3){
+                    else if (role == 2){
                         float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
                         float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
                         if (action_1 > 0){
                             action_1 = action_1 * 1.6 + 0.2;
+                        }
+                        float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
+                        theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
+                    }
+                    else if (role == 3){
+                        float action_0 = std::max(std::min((float)(algorithm->getActionMeans()[0]), 1.0f), -1.0f) * 0.6f;
+                        float action_1 = std::max(std::min((float)(algorithm->getActionMeans()[1]), 1.0f), -1.0f) * 0.5f;
+                        if (action_1 > 0){
+                            action_1 = action_1 * 1.6 + 0.4;
                         }
                         float action_2 = std::max(std::min((float)(algorithm->getActionMeans()[2]), 1.0f), -1.0f);
                         theWalkAtRelativeSpeedSkill({.speed = {action_0, action_1, action_2}});
