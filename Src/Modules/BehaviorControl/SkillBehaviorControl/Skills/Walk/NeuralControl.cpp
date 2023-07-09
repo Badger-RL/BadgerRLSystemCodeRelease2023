@@ -237,11 +237,11 @@ public:
             role = 1;
             algorithm = & goalKeeperKickAlgorithm;
         }
-        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 3) {
+        else if (theGameState.playerNumber == 2 || theGameState.playerNumber == 4) {
             role = 3;
             algorithm = & attackerAlgorithm;
         }
-        else if (theGameState.playerNumber == 4 || theGameState.playerNumber == 5) {
+        else if (theGameState.playerNumber == 3 || theGameState.playerNumber == 5) {
             role = 2;
             algorithm = & attackerAlgorithm;
         }
@@ -362,7 +362,7 @@ public:
                         if((predictedPosition[0] > -1100 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
                             shield = true;
                         }
-                    }else if(theGameState.playerNumber == 3){
+                    }else if(theGameState.playerNumber == 4){
                         if((predictedPosition[0] > -2200 || predictedPosition[0] < -4600  || predictedPosition[1] > 2900 || predictedPosition[1] < -2900 )){
                             shield = true;
                         }
