@@ -2,7 +2,7 @@ RobotStatus
 {
   isUpright: Boolean
   timeWhenLastUpright: Timestamp(bits=8, shift=6, reference=relativePast)
-  sequenceNumbers: Integer(min=-1, max=40)[20]
+  sequenceNumbers: Integer(min=-1, max=40)[7]
 }
 RobotPose
 {
