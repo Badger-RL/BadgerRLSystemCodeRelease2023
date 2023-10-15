@@ -47,6 +47,13 @@ and finally, to tell the robots to start the countdown after which the the kicko
 ````
 gc playing
 ````
+
+## Reinforcement Learning-Derived Policies
+
+
+Policies trained with https://github.com/Badger-RL/AbstractSimRelease2023 can be placed in `Config/Policies/AttackerPolicy` and `Config/Policies/GoalKeeperKickPolicy` to control the attacker/defenders and goalie respectively. Instructions for how to export a policy are contained in the README.md files in https://github.com/Badger-RL/AbstractSimRelease2023.
+
+
 ## Live Stream Physical Robot Image View
 To live stream physical robot view, first select the build checkbox and deploy the robot with the Develop version and a non-negative magic number. 
   
