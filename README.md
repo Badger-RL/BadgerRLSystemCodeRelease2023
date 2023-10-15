@@ -1,7 +1,7 @@
 
 # Badger RL README
 
-This is the BadgerRL internal fork of BHumanCodeRelease.
+This is the Code Release to go with BadgerRL's participation in 2023 Robocup SPL as team BadgerBots. It is pre-loaded with all necessary policies to field a team exactly like the one we used at Robocup 2023. It is Configured to assume a team of 5 robots.
 
 ## Setup instructions
 
@@ -27,7 +27,7 @@ To run the simulator after compiling it(example provided for Ubuntu), you can ru
 
 ## Basic usage instructions
 
-After opening SimRobot, Go to File, then open to select a scene from `Config/Scenes`. A good first scene to try is OneTeamFast.ros2. 
+After opening SimRobot, Go to File, then open to select a scene from `Config/Scenes`. A good first scene to try is OneTeamFast.ros2. You can also try GameFast for a a full game.  
 
 Once you open the Scene file, there will be a window titled scene graph, which shows `Console` and `Robocup`. Double click on each of these to open the visualization window and SimRobot internal console.  
 
@@ -239,12 +239,36 @@ Navigate to the file and find the line (about line 20):
 
 When you are compiling for the NAOs on Mac change this flag to be 1. If you are compiling for MAC for SimRobot, change this to be 0, and for all other uses (likely Linux), leave at 2 or change to 2 if it is not. This should then compile with no problems but if it doesn't, reach out to Adam and he will help.
 
-# B-Human Code Release README
+# B-Human Code Release statment
+This product includes software developed by B-Human(http://www.b-human.de).
 
-This is the official 2022 B-Human code release. Documentation can be found in our [public wiki](https://wiki.b-human.de/coderelease2022/).
+Please see License.md for the original BHuman License.
 
-B-Human is a research project. We provide the software as is. We release it as a snapshot of our internal repository on a yearly basis. You can build on this software, but you have to make do with the documentation we released. You may report bugs or problems with newer releases of operating systems or the tools used by opening a GitHub issue. We might give hints on how to solve these problems if we also ran into them since the code release. Do not write emails to the team or any of its members directly. They will not be answered.
+# Other Third Party Code
+ 
+## https://github.com/kthohr/gcem
+Apache2.0
 
-Before cloning this repository, you must read our [license terms](License.md) and the [instructions in our wiki](https://wiki.b-human.de/coderelease2022/getting-started/).
 
-Previous code releases are tagged with "coderelease&lt;year&gt;", where &lt;year&gt; is the year in which the code was released (starting with 2013).
+## https://github.com/kthohr/stats
+Apache2.0
+
+
+## https://github.com/eteran/cpp-json
+pp-json
+Copyright (C) 2014-2023  Evan Teran
+                         evan.teran@gmail.com
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
